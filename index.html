@@ -3,839 +3,1019 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>智能排座系统 · 教室座位编排</title>
+<title>智慧排座 · 班级管理平台</title>
 <style>
 :root{
-  --bg:#eef2f7; --card:#fff; --line:#e2e8f0; --text:#1e293b; --muted:#64748b;
-  --primary:#4f46e5; --primary-d:#4338ca;
+  --bg:#f1f5f9; --card:#fff; --line:#e2e8f0; --text:#1e293b; --muted:#64748b;
+  --primary:#4f46e5; --primary-d:#4338ca; --primary-l:#eef2ff;
+  --success:#10b981; --warn:#f59e0b; --danger:#ef4444;
+  --sidebar:#1e293b; --sidebar-text:#cbd5e1;
 }
-*{box-sizing:border-box;}
+[data-theme="dark"]{
+  --bg:#0f172a; --card:#1e293b; --line:#334155; --text:#e2e8f0; --muted:#94a3b8;
+  --primary:#818cf8; --primary-d:#6366f1; --primary-l:#312e81;
+  --sidebar:#020617; --sidebar-text:#94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 body{
-  margin:0;background:var(--bg);color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-  -webkit-font-smoothing:antialiased;
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;transition:background .25s,color .25s;
 }
 
 /* ---------- 顶栏 ---------- */
 .topbar{
-  height:58px;display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;background:linear-gradient(100deg,#4f46e5,#2563eb 62%,#0ea5e9);
-  color:#fff;box-shadow:0 4px 16px rgba(37,99,235,.25);position:relative;z-index:20;
+  height:56px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;background:linear-gradient(100deg,#4f46e5,#2563eb 60%,#0ea5e9);
+  color:#fff;box-shadow:0 3px 14px rgba(37,99,235,.22);position:relative;z-index:30;
 }
-.brand{font-weight:700;font-size:17px;letter-spacing:.4px;display:flex;align-items:center;gap:8px;}
-.brand .ver{font-size:11px;font-weight:400;opacity:.7;border:1px solid rgba(255,255,255,.4);
-  padding:1px 6px;border-radius:20px;}
-.top-actions{display:flex;gap:8px;}
+.brand{font-weight:700;font-size:16px;letter-spacing:.3px;display:flex;align-items:center;gap:8px;}
+.brand .ver{font-size:10.5px;font-weight:400;opacity:.75;border:1px solid rgba(255,255,255,.4);padding:1px 7px;border-radius:20px;}
+.top-actions{display:flex;gap:8px;align-items:center;}
 .top-actions button{
   background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
-  color:#fff;padding:7px 14px;border-radius:9px;font-size:13px;cursor:pointer;
+  color:#fff;padding:6px 13px;border-radius:8px;font-size:12.5px;cursor:pointer;
   font-family:inherit;transition:.15s;
 }
 .top-actions button:hover{background:rgba(255,255,255,.3);}
-.top-actions button:active{transform:translateY(1px);}
-.top-actions button.primary{background:#fff;color:#4338ca;border-color:#fff;font-weight:600;}
-.top-actions button:disabled{opacity:.4;cursor:not-allowed;}
+.top-actions button.primary{background:#fff;color:#4338ca;font-weight:600;}
 
 /* ---------- 布局 ---------- */
-main{display:flex;height:calc(100vh - 58px);}
+.app{display:flex;height:calc(100vh - 56px);}
 .sidebar{
-  width:346px;flex:0 0 346px;overflow-y:auto;padding:14px;
-  display:flex;flex-direction:column;gap:12px;background:#f6f8fb;
-  border-right:1px solid var(--line);
+  width:212px;flex:0 0 212px;background:var(--sidebar);padding:14px 10px;
+  display:flex;flex-direction:column;gap:4px;overflow-y:auto;
 }
-.card{background:#fff;border-radius:14px;padding:14px;border:1px solid #eef2f7;
-  box-shadow:0 1px 3px rgba(15,23,42,.05);}
-.card h3{margin:0 0 10px;font-size:13.5px;font-weight:700;color:#334155;
-  display:flex;align-items:center;gap:6px;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;
+  color:var(--sidebar-text);font-size:13.5px;cursor:pointer;transition:.15s;user-select:none;
+}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.nav-item.active{background:var(--primary);color:#fff;font-weight:600;box-shadow:0 4px 12px rgba(79,70,229,.3);}
+.nav-item .ic{font-size:16px;width:20px;text-align:center;}
+
+.content{flex:1;overflow-y:auto;padding:22px 26px 40px;}
+.page{display:none;animation:fade .25s ease;}
+.page.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+.page-head{margin-bottom:18px;}
+.page-head h2{font-size:20px;font-weight:800;letter-spacing:.3px;}
+.page-head p{font-size:12.5px;color:var(--muted);margin-top:3px;}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--line);
+  box-shadow:0 1px 3px rgba(15,23,42,.05);transition:background .25s;
+}
+.card h3{margin:0 0 12px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+
+/* ---------- 统计卡 ---------- */
+.stat-card{
+  background:var(--card);border-radius:14px;padding:16px;border:1px solid var(--line);
+  display:flex;flex-direction:column;gap:6px;
+}
+.stat-card .lbl{font-size:12px;color:var(--muted);}
+.stat-card .val{font-size:26px;font-weight:800;letter-spacing:.5px;}
+.stat-card .val.p{color:var(--primary);}
+.stat-card .val.g{color:var(--success);}
+.stat-card .val.w{color:var(--warn);}
 
 /* ---------- 表单 ---------- */
-select,input[type=number]{
+select,input[type=text],input[type=number],textarea{
   width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:9px;
-  font-family:inherit;font-size:13px;background:#fff;color:var(--text);outline:none;transition:.15s;
+  font-family:inherit;font-size:13px;background:var(--card);color:var(--text);
+  outline:none;transition:.15s;
 }
-select:focus,input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+select:focus,input:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12);}
 .row{display:flex;gap:10px;}
 .row>*{flex:1;}
 .field{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);}
-.check{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#475569;
-  margin-top:9px;cursor:pointer;user-select:none;}
+.check{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none;}
 .check input{width:15px;height:15px;accent-color:var(--primary);cursor:pointer;}
-.hint{font-size:11.5px;color:#94a3b8;line-height:1.6;margin-top:8px;}
-.hint b{color:#4f46e5;}
-button.act{
-  width:100%;padding:9px;border-radius:10px;border:1px solid var(--line);background:#fff;
+.hint{font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:8px;}
+.hint b{color:var(--primary);}
+
+button.btn{
+  padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:var(--card);
   color:var(--text);font-size:13px;font-family:inherit;cursor:pointer;transition:.15s;
+  display:inline-flex;align-items:center;gap:6px;justify-content:center;
 }
-button.act:hover{background:#f8fafc;border-color:#cbd5e1;}
-button.act.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;}
-button.act.primary:hover{background:var(--primary-d);}
-button.act.big{padding:11px;font-size:14px;margin-top:10px;}
-button.act:active{transform:translateY(1px);}
-button.act.active{background:#eef2ff;border-color:var(--primary);color:var(--primary-d);font-weight:700;box-shadow:0 0 0 3px rgba(79,70,229,.1);}
+button.btn:hover{background:var(--primary-l);border-color:var(--primary);}
+button.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;}
+button.btn.primary:hover{background:var(--primary-d);}
+button.btn.danger{border-color:var(--danger);color:var(--danger);}
+button.btn.danger:hover{background:#fef2f2;}
+button.btn.sm{padding:5px 10px;font-size:12px;}
+button.btn:disabled{opacity:.45;cursor:not-allowed;}
+button.btn:active{transform:translateY(1px);}
 .mt8{margin-top:8px;}
 
 /* ---------- 教室模板 ---------- */
 .tpl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .tpl-btn{
   display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 2px;
-  border-radius:10px;border:1.5px solid var(--line);background:#fff;cursor:pointer;
-  font-size:11.5px;font-family:inherit;color:#475569;transition:.15s;
+  border-radius:10px;border:1.5px solid var(--line);background:var(--card);cursor:pointer;
+  font-size:11.5px;font-family:inherit;color:var(--muted);transition:.15s;
 }
-.tpl-btn .ic{font-size:18px;line-height:1;}
-.tpl-btn:hover{border-color:#c7d2fe;background:#f8faff;}
-.tpl-btn.active{border-color:var(--primary);background:#eef2ff;color:var(--primary-d);font-weight:700;}
+.tpl-btn .ic{font-size:18px;}
+.tpl-btn:hover{border-color:var(--primary);background:var(--primary-l);}
+.tpl-btn.active{border-color:var(--primary);background:var(--primary-l);color:var(--primary-d);font-weight:700;}
 
 /* ---------- 舞台 ---------- */
-.stage{flex:1;overflow:auto;padding:22px 26px 40px;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.stage{display:flex;flex-direction:column;align-items:center;gap:16px;padding:6px 0;}
 .podium{
   background:linear-gradient(180deg,#334155,#1e293b);color:#e2e8f0;
-  padding:9px 90px;border-radius:0 0 16px 16px;font-size:13px;letter-spacing:8px;
-  font-weight:600;box-shadow:0 8px 20px rgba(15,23,42,.22);text-indent:8px;
-  flex:0 0 auto;
+  padding:8px 80px;border-radius:0 0 14px 14px;font-size:12.5px;letter-spacing:7px;
+  font-weight:600;text-indent:7px;
 }
 .grid-wrap{
-  background:#fff;border-radius:16px;padding:22px;border:1px solid #eef2f7;
-  box-shadow:0 2px 12px rgba(15,23,42,.07);max-width:100%;overflow:auto;
+  background:var(--card);border-radius:14px;padding:18px;border:1px solid var(--line);
+  max-width:100%;overflow:auto;
 }
-.grid{display:grid;gap:7px;justify-content:center;}
+.grid{display:grid;gap:6px;justify-content:center;}
 
-/* ---------- 格子（通用） ---------- */
+/* ---------- 格子 ---------- */
 .cell{
-  position:relative;min-height:54px;border-radius:9px;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;font-size:13px;
+  position:relative;min-height:50px;border-radius:8px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-size:12.5px;
   transition:all .13s ease;overflow:hidden;padding:2px 4px;
 }
-.cell.seat{background:#fff;border:1.5px solid #d8e0ec;box-shadow:0 1px 2px rgba(15,23,42,.05);cursor:pointer;}
-.cell.seat:hover{border-color:var(--primary);box-shadow:0 5px 14px rgba(79,70,229,.2);transform:translateY(-1px);}
+.cell.seat{background:var(--card);border:1.5px solid var(--line);cursor:pointer;}
+.cell.seat:hover{border-color:var(--primary);box-shadow:0 4px 12px rgba(79,70,229,.18);transform:translateY(-1px);}
 .cell.aisle{
   background:repeating-linear-gradient(45deg,#e9eef6,#e9eef6 5px,#f7f9fc 5px,#f7f9fc 10px);
   border:1px dashed #dde5ef;cursor:pointer;
 }
-.cell.aisle:hover{background:repeating-linear-gradient(45deg,#dbe4f0,#dbe4f0 5px,#eef2f9 5px,#eef2f9 10px);}
-.cell.row-aisle{min-height:16px;}
-.cell.blank{background:transparent;border:none;pointer-events:none;box-shadow:none;}
-.cell.desk{
-  background:transparent;border:none;pointer-events:none;
-  display:flex;align-items:center;justify-content:center;
-}
-.cell.desk::after{
-  content:'';width:34px;height:34px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,#94a3b8,#475569 70%);
-  box-shadow:0 2px 8px rgba(15,23,42,.28),inset 0 1px 2px rgba(255,255,255,.4);
-}
+[data-theme="dark"] .cell.aisle{background:repeating-linear-gradient(45deg,#1e293b,#1e293b 5px,#0f172a 5px,#0f172a 10px);border-color:#334155;}
+.cell.row-aisle{min-height:14px;}
+.cell.blank{background:transparent;border:none;pointer-events:none;}
+.cell.desk{background:transparent;border:none;pointer-events:none;display:flex;align-items:center;justify-content:center;}
+.cell.desk::after{content:'';width:32px;height:32px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#94a3b8,#475569 70%);box-shadow:0 2px 8px rgba(15,23,42,.28);}
 
-/* ---------- 智慧教室专属样式 ---------- */
 .cell.smart-seat{
-  border-radius:50%;
-  width:52px;height:52px;min-height:52px;
-  margin:0 auto;
-  background:#fff;
-  border:2px solid #e2e8f0;
-  box-shadow:0 1px 4px rgba(15,23,42,.06);
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  padding:0;
-  cursor:pointer;
+  border-radius:50%;width:50px;height:50px;min-height:50px;margin:0 auto;
+  background:var(--card);border:2px solid var(--line);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;
 }
-.cell.smart-seat:hover{
-  border-color:#818cf8;
-  box-shadow:0 4px 14px rgba(99,102,241,.22);
-  transform:translateY(-1px);
-}
-.cell.smart-seat .sname{
-  font-size:11.5px;font-weight:600;line-height:1.15;color:#1e293b;
-  max-width:46px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
-.cell.smart-seat .sno{display:none;}
-.cell.smart-seat .empty{font-size:10px;color:#cbd5e1;}
-
+.cell.smart-seat:hover{border-color:#818cf8;box-shadow:0 4px 14px rgba(99,102,241,.22);}
+.cell.smart-seat .sname{font-size:11px;font-weight:600;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cell.smart-seat .empty{font-size:10px;color:var(--muted);}
 .cell.smart-desk{
-  border-radius:50%;
-  background:linear-gradient(145deg,#e0e7ff,#dbeafe);
-  border:2px solid #c7d2fe;
-  box-shadow:inset 0 2px 6px rgba(99,102,241,.12),0 2px 8px rgba(99,102,241,.15);
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
+  border-radius:50%;background:linear-gradient(145deg,#e0e7ff,#dbeafe);
+  border:2px solid #c7d2fe;display:flex;flex-direction:column;align-items:center;justify-content:center;
   font-size:10px;color:#4338ca;font-weight:700;line-height:1.3;
-  width:64px;height:64px;min-height:64px;
-  align-self:center;justify-self:center;
-  pointer-events:none;
+  width:62px;height:62px;min-height:62px;align-self:center;justify-self:center;pointer-events:none;
 }
-.cell.smart-desk .desk-num{font-size:13px;font-weight:800;color:#3730a3;}
-.cell.smart-desk .desk-status{font-size:9px;font-weight:400;color:#818cf8;}
+[data-theme="dark"] .cell.smart-desk{background:linear-gradient(145deg,#312e81,#1e1b4b);border-color:#4338ca;color:#a5b4fc;}
+.cell.smart-desk .desk-num{font-size:12px;font-weight:800;color:#3730a3;}
+[data-theme="dark"] .cell.smart-desk .desk-num{color:#c7d2fe;}
 
-/* 过道模式 */
-.grid.aisle-mode .cell.seat{border-color:#f59e0b;background:#fffbeb;cursor:crosshair;}
-.grid.aisle-mode .cell.seat:hover{border-color:#f97316;box-shadow:0 0 0 3px rgba(249,115,22,.18);}
-.grid.aisle-mode .cell.smart-seat{border-color:#f59e0b;background:#fffbeb;}
+.grid.aisle-mode .cell.seat{border-color:var(--warn);background:#fffbeb;cursor:crosshair;}
+.grid.aisle-mode .cell.smart-seat{border-color:var(--warn);background:#fffbeb;}
 
-.sname{font-weight:600;font-size:13px;line-height:1.15;color:#1e293b;
-  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sno{font-size:9px;color:#94a3b8;margin-top:1px;letter-spacing:.2px;}
-.empty{font-size:11px;color:#cbd5e1;}
+/* 考勤状态 */
+.cell.seat.present{border-color:var(--success);background:#ecfdf5;}
+.cell.seat.absent{border-color:var(--danger);background:#fef2f2;}
+.cell.seat.late{border-color:var(--warn);background:#fffbeb;}
+.cell.smart-seat.present{border-color:var(--success);background:#ecfdf5;}
+.cell.smart-seat.absent{border-color:var(--danger);background:#fef2f2;}
+.cell.smart-seat.late{border-color:var(--warn);background:#fffbeb;}
 
-/* ---------- 统计 ---------- */
-.stats{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.9;}
-.stats b{color:var(--primary-d);font-size:14px;}
+.sname{font-weight:600;font-size:12.5px;line-height:1.15;color:var(--text);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sno{font-size:9px;color:var(--muted);margin-top:1px;}
+.empty{font-size:11px;color:var(--muted);}
+
+/* ---------- 列表 ---------- */
+.list{display:flex;flex-direction:column;gap:8px;}
+.list-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 14px;border-radius:11px;border:1px solid var(--line);background:var(--card);
+  transition:.15s;
+}
+.list-item:hover{border-color:var(--primary);}
+.list-item.active{border-color:var(--primary);background:var(--primary-l);}
+.list-item .info{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.list-item .name{font-weight:600;font-size:13.5px;}
+.list-item .meta{font-size:11.5px;color:var(--muted);}
+.list-item .ops{display:flex;gap:6px;flex-shrink:0;}
 
 /* ---------- 弹窗 ---------- */
 .modal{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;
   align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(2px);}
 .modal.show{display:flex;}
-.modal-box{background:#fff;border-radius:16px;padding:20px;width:480px;max-width:92vw;
-  box-shadow:0 20px 50px rgba(15,23,42,.3);}
-.modal-box h4{margin:0 0 6px;font-size:15px;}
-.modal-box textarea{
-  width:100%;height:230px;margin-top:10px;padding:10px;border:1px solid var(--line);
-  border-radius:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
-  resize:vertical;outline:none;line-height:1.6;
-}
-.modal-box textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+.modal-box{background:var(--card);border-radius:16px;padding:20px;width:480px;max-width:92vw;
+  box-shadow:0 20px 50px rgba(15,23,42,.3);max-height:88vh;overflow-y:auto;}
+.modal-box h4{margin:0 0 10px;font-size:15px;}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
-.modal-actions button{padding:8px 18px;border-radius:9px;border:1px solid var(--line);
-  background:#fff;cursor:pointer;font-family:inherit;font-size:13px;}
-.modal-actions button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600;}
 
 /* ---------- Toast ---------- */
 .toast{
-  position:fixed;left:50%;bottom:36px;transform:translate(-50%,20px);
+  position:fixed;left:50%;bottom:32px;transform:translate(-50%,20px);
   background:#1e293b;color:#fff;padding:11px 22px;border-radius:11px;font-size:13.5px;
   opacity:0;pointer-events:none;transition:.28s;z-index:300;box-shadow:0 10px 26px rgba(15,23,42,.35);
 }
 .toast.show{opacity:1;transform:translate(-50%,0);}
 
 /* ---------- 滚动条 ---------- */
-.sidebar::-webkit-scrollbar,.stage::-webkit-scrollbar,.grid-wrap::-webkit-scrollbar{width:8px;height:8px;}
-.sidebar::-webkit-scrollbar-thumb,.stage::-webkit-scrollbar-thumb,.grid-wrap::-webkit-scrollbar-thumb{
-  background:#cbd5e1;border-radius:8px;}
-.sidebar::-webkit-scrollbar-track,.stage::-webkit-scrollbar-track,.grid-wrap::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+[data-theme="dark"] ::-webkit-scrollbar-thumb{background:#475569;}
 
-/* ---------- 打印 ---------- */
+/* ---------- 空状态 ---------- */
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
+.empty-state .ic{font-size:40px;display:block;margin-bottom:10px;opacity:.5;}
+
 @media print{
   @page{size:landscape;margin:10mm;}
-  body{background:#fff;}
-  .topbar,.sidebar,.stats,.podium{display:none !important;}
-  main{display:block;height:auto;}
-  .stage{padding:0;display:block;}
-  .grid-wrap{border:none;box-shadow:none;padding:0;margin:0 auto;}
-  .cell.seat{border:1px solid #94a3b8;box-shadow:none;}
+  .topbar,.sidebar,.stats,.podium,.no-print{display:none !important;}
+  .app{display:block;height:auto;}
+  .content{padding:0;}
+  .grid-wrap{border:none;box-shadow:none;padding:0;}
+  .cell.seat{border:1px solid #94a3b8;}
   .cell.aisle{background:none;border:none;}
-  .cell.smart-seat{border:1px solid #94a3b8;}
-  .cell.smart-desk{background:#e0e7ff !important;border:1px solid #c7d2fe !important;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
 </style>
 </head>
-<body>
+<body data-theme="light">
 
 <header class="topbar">
-  <div class="brand">🪑 智能排座系统 <span class="ver">v1.2</span></div>
+  <div class="brand">🪑 智慧排座 · 班级管理平台 <span class="ver">v2.0</span></div>
   <div class="top-actions">
-    <button id="btnUndo" title="撤销上一步操作">↶ 撤销</button>
-    <button id="btnImport" title="导入之前导出的座位表">📂 导入</button>
-    <button id="btnExport" title="导出为 JSON 文件">📤 导出</button>
-    <button id="btnPrint" title="打印或另存为 PDF">🖨️ 打印</button>
-    <button id="btnSave" class="primary" title="保存到浏览器本地">💾 保存</button>
+    <button id="btnTheme" title="切换主题">🌙 暗色</button>
+    <button id="btnSaveAll" class="primary" title="保存所有数据">💾 保存</button>
   </div>
 </header>
 
-<main>
-  <aside class="sidebar">
-    <!-- ① 班级 / 名单 -->
-    <section class="card">
-      <h3>① 选择班级 / 导入名单</h3>
-      <select id="classSelect"></select>
-      <div class="row mt8">
-        <button class="act" id="btnImportRoster">📁 导入名单</button>
-        <button class="act" id="btnTemplate">⬇️ 下载模板</button>
+<div class="app">
+  <!-- ============ 侧边栏导航 ============ -->
+  <nav class="sidebar">
+    <div class="nav-item active" data-page="dashboard"><span class="ic">📊</span> 仪表盘</div>
+    <div class="nav-item" data-page="classes"><span class="ic">👥</span> 班级管理</div>
+    <div class="nav-item" data-page="seating"><span class="ic">🪑</span> 排座工作台</div>
+    <div class="nav-item" data-page="schemes"><span class="ic">📁</span> 方案库</div>
+    <div class="nav-item" data-page="attendance"><span class="ic">✅</span> 考勤签到</div>
+    <div class="nav-item" data-page="stats"><span class="ic">📈</span> 数据统计</div>
+    <div class="nav-item" data-page="settings"><span class="ic">⚙️</span> 设置</div>
+  </nav>
+
+  <!-- ============ 内容区 ============ -->
+  <main class="content">
+
+    <!-- ---------- 仪表盘 ---------- -->
+    <section id="page-dashboard" class="page active">
+      <div class="page-head">
+        <h2>仪表盘</h2>
+        <p>快速了解当前数据状态，一键进入常用功能</p>
       </div>
-      <button class="act mt8" id="btnPasteRoster">📋 手动粘贴名单</button>
-      <div class="hint">
-        当前名单：<b id="stuCount">0</b> 人
-        <span id="classNameLabel" style="display:block;margin-top:2px;"></span>
-        <span style="display:block;margin-top:4px;color:#cbd5e1;">支持 CSV / TXT，每行「学号,姓名」或仅姓名</span>
+      <div class="grid3" id="dashStats"></div>
+      <div class="grid2 mt8" style="margin-top:14px">
+        <div class="card">
+          <h3>⚡ 快捷操作</h3>
+          <div class="list">
+            <button class="btn primary" onclick="go('classes')">👥 管理班级名单</button>
+            <button class="btn" onclick="go('seating')">🪑 开始排座</button>
+            <button class="btn" onclick="go('schemes')">📁 查看方案库</button>
+            <button class="btn" onclick="go('attendance')">✅ 考勤签到</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>📌 当前班级</h3>
+          <div id="dashCurrentClass" class="hint">暂无选中班级</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- 班级管理 ---------- -->
+    <section id="page-classes" class="page">
+      <div class="page-head">
+        <h2>班级管理</h2>
+        <p>创建班级、导入学生名单、切换当前班级</p>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>📋 班级列表</h3>
+          <div id="classList" class="list"></div>
+          <button class="btn primary mt8" id="btnAddClass" style="width:100%">➕ 新建班级</button>
+        </div>
+        <div class="card">
+          <h3>📥 导入名单</h3>
+          <div class="row">
+            <button class="btn" id="btnImportCsv">📁 导入 CSV/TXT</button>
+            <button class="btn" id="btnDownloadTpl">⬇️ 下载模板</button>
+          </div>
+          <button class="btn mt8" id="btnPasteList" style="width:100%">📋 手动粘贴名单</button>
+          <div class="hint">
+            支持格式：每行「学号,姓名」或仅姓名。<br>
+            导入后自动覆盖当前选中班级的名单。
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- ② 排座方式 -->
-    <section class="card">
-      <h3>② 排座方式</h3>
-      <select id="sortMode">
-        <option value="random">🎲 随机排座</option>
-        <option value="snoAsc">🔢 按学号升序</option>
-        <option value="snoDesc">🔽 按学号降序</option>
-        <option value="name">🔤 按姓名排序</option>
-      </select>
-      <label class="check"><input type="checkbox" id="snake"> 蛇形（S 形）排布</label>
-      <button class="act primary big" id="btnArrange">🎯 生成座位</button>
+    <!-- ---------- 排座工作台 ---------- -->
+    <section id="page-seating" class="page">
+      <div class="page-head">
+        <h2>排座工作台</h2>
+        <p>选择教室模板、设置排座方式、生成座位</p>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>① 教室类型</h3>
+          <div class="tpl-grid" id="tplGrid"></div>
+        </div>
+        <div class="card">
+          <h3>② 排座方式</h3>
+          <select id="sortMode">
+            <option value="random">🎲 随机排座</option>
+            <option value="snoAsc">🔢 按学号升序</option>
+            <option value="snoDesc">🔽 按学号降序</option>
+            <option value="name">🔤 按姓名排序</option>
+          </select>
+          <label class="check"><input type="checkbox" id="snake"> 蛇形（S 形）排布</label>
+          <button class="btn primary mt8" id="btnArrange" style="width:100%">🎯 生成座位</button>
+          <button class="btn mt8" id="btnSaveScheme" style="width:100%">💾 保存为方案</button>
+        </div>
+        <div class="card">
+          <h3>③ 手动调整</h3>
+          <div class="row">
+            <label class="field">行数 <input type="number" id="rowsInput" min="1" max="30" value="6"></label>
+            <label class="field">列数 <input type="number" id="colsInput" min="1" max="30" value="8"></label>
+          </div>
+          <button class="btn mt8" id="btnAisleMode" style="width:100%">➕ 添加过道</button>
+          <div class="hint">开启过道模式后点击座位变过道；双击过道恢复为座位。</div>
+          <div class="row mt8">
+            <button class="btn sm" id="btnClearAisle">清除过道</button>
+            <button class="btn sm" id="btnClearSeats">清空分配</button>
+            <button class="btn sm" id="btnUndo">↶ 撤销</button>
+          </div>
+        </div>
+      </div>
+      <div class="stage" style="margin-top:18px">
+        <div class="podium">讲 台</div>
+        <div class="grid-wrap">
+          <div id="grid" class="grid"></div>
+        </div>
+        <div id="seatStats" class="hint" style="text-align:center"></div>
+      </div>
     </section>
 
-    <!-- ③ 教室类型 -->
-    <section class="card">
-      <h3>③ 教室类型</h3>
-      <div class="tpl-grid" id="tplGrid"></div>
-      <div class="hint">切换模板会重置当前座位编排</div>
-    </section>
-
-    <!-- ④ 手动调整 -->
-    <section class="card">
-      <h3>④ 手动调整</h3>
-      <div class="row">
-        <label class="field">行数
-          <input type="number" id="rowsInput" min="1" max="30" value="6">
-        </label>
-        <label class="field">列数
-          <input type="number" id="colsInput" min="1" max="30" value="8">
-        </label>
+    <!-- ---------- 方案库 ---------- -->
+    <section id="page-schemes" class="page">
+      <div class="page-head">
+        <h2>方案库</h2>
+        <p>保存的座位方案，可加载、重命名、删除</p>
       </div>
-
-      <button class="act mt8" id="btnAisleMode">➕ 添加过道</button>
-      <div class="hint">
-        💡 开启「过道模式」后，点击任意座位即可变成过道；<br>
-        <b>双击任意过道</b>即可恢复为座位。
-      </div>
-
-      <div class="row mt8">
-        <button class="act" id="btnClearAisle">清除所有过道</button>
-        <button class="act" id="btnClearSeats">清空座位分配</button>
+      <div class="card">
+        <div id="schemeList" class="list"></div>
       </div>
     </section>
-  </aside>
 
-  <section class="stage">
-    <div class="podium">讲 台</div>
-    <div class="grid-wrap">
-      <div id="grid" class="grid"></div>
-    </div>
-    <div id="stats" class="stats"></div>
-  </section>
-</main>
+    <!-- ---------- 考勤签到 ---------- -->
+    <section id="page-attendance" class="page">
+      <div class="page-head">
+        <h2>考勤签到</h2>
+        <p>选择方案，点击学生标记出勤/缺勤/迟到</p>
+      </div>
+      <div class="card">
+        <div class="row">
+          <label class="field">选择方案
+            <select id="attSchemeSelect"></select>
+          </label>
+          <div style="flex:0 0 auto;display:flex;gap:8px;align-items:flex-end;">
+            <button class="btn sm" id="btnAllPresent">全部出勤</button>
+            <button class="btn sm" id="btnResetAtt">重置</button>
+          </div>
+        </div>
+      </div>
+      <div class="stage" style="margin-top:18px">
+        <div class="grid-wrap">
+          <div id="attGrid" class="grid"></div>
+        </div>
+        <div id="attStats" class="hint" style="text-align:center"></div>
+      </div>
+    </section>
 
-<!-- 粘贴名单弹窗 -->
+    <!-- ---------- 数据统计 ---------- -->
+    <section id="page-stats" class="page">
+      <div class="page-head">
+        <h2>数据统计</h2>
+        <p>班级、座位、考勤的整体数据</p>
+      </div>
+      <div class="grid3" id="statsCards"></div>
+      <div class="card mt8" style="margin-top:14px">
+        <h3>📋 班级概览</h3>
+        <div id="statsTable"></div>
+      </div>
+    </section>
+
+    <!-- ---------- 设置 ---------- -->
+    <section id="page-settings" class="page">
+      <div class="page-head">
+        <h2>设置</h2>
+        <p>主题、数据导入导出、清空</p>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3>🎨 主题</h3>
+          <button class="btn" id="btnTheme2" style="width:100%">🌓 切换亮色 / 暗色</button>
+        </div>
+        <div class="card">
+          <h3>💾 数据管理</h3>
+          <button class="btn" id="btnExportAll" style="width:100%">📤 导出全部数据（JSON）</button>
+          <button class="btn mt8" id="btnImportAll" style="width:100%">📂 导入数据（JSON）</button>
+          <button class="btn danger mt8" id="btnClearAll" style="width:100%">🗑️ 清空所有数据</button>
+          <div class="hint">数据保存在浏览器本地，导出后可在其他设备导入。</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- 通用弹窗 -->
 <div class="modal" id="modal">
   <div class="modal-box">
-    <h4>粘贴班级名单</h4>
-    <p class="hint" style="margin:0">每行一个学生，格式：<code>学号,姓名</code> 或 只写姓名</p>
-    <textarea id="rosterText" placeholder="20230101,张伟&#10;20230102,李娜&#10;王小明"></textarea>
+    <h4 id="modalTitle">提示</h4>
+    <div id="modalBody"></div>
     <div class="modal-actions">
-      <button id="modalCancel">取消</button>
-      <button id="modalOk" class="primary">确定</button>
+      <button class="btn" id="modalCancel">取消</button>
+      <button class="btn primary" id="modalOk">确定</button>
     </div>
   </div>
 </div>
 
 <div id="toast" class="toast"></div>
 <input type="file" id="fileInput" accept="application/json" hidden>
-<input type="file" id="rosterFileInput" accept=".csv,.txt,text/csv,text/plain" hidden>
+<input type="file" id="csvInput" accept=".csv,.txt,text/csv,text/plain" hidden>
 
 <script>
 /* =========================================================
    工具函数
    ========================================================= */
 const $ = id => document.getElementById(id);
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-
-function shuffle(a){
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
-  }
-  return a;
-}
-
-function esc(s){
-  return String(s).replace(/[&<>"']/g, m => (
-    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
-  ));
-}
+const $$ = sel => document.querySelectorAll(sel);
+const clamp = (v,a,b) => Math.min(b,Math.max(a,v));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const shuffle = a => { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
 
 let toastTimer;
 function toast(msg){
-  const t = $('toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2300);
 }
 
+/* ---------- 通用弹窗 ---------- */
+function showModal(title, bodyHTML, onOk, okText){
+  $('modalTitle').textContent = title;
+  $('modalBody').innerHTML = bodyHTML;
+  $('modalOk').textContent = okText || '确定';
+  $('modal').classList.add('show');
+  $('modalOk').onclick = () => { if(onOk && onOk() === false) return; closeModal(); };
+}
+function closeModal(){ $('modal').classList.remove('show'); }
+$('modalCancel').addEventListener('click', closeModal);
+$('modal').addEventListener('click', e => { if(e.target.id === 'modal') closeModal(); });
+
 /* =========================================================
-   演示数据
+   数据层
    ========================================================= */
-const SURNAME_LIST = '赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦许何吕施张孔曹严华金魏陶姜戚谢邹喻柏水窦章云苏潘葛奚范彭郎鲁韦昌马苗凤花方俞任袁柳'.split('');
-const GIVEN_NAMES = ['子涵','浩然','欣怡','雨桐','思远','嘉怡','宇轩','梓涵','明轩','诗琪','俊杰','雅静',
-  '天佑','梦琪','伟豪','晓彤','博文','静怡','皓宇','梦洁','锦程','雨欣','泽宇','语嫣','天成','雨萱',
-  '文博','思琪','浩宇','佳琪','志强','晓燕','子豪','梦瑶','嘉俊','紫涵','泓宇','雨嘉','逸凡','晨曦',
-  '振宇','书瑶','睿轩','婉婷','冠霖','若曦','鑫磊','芷若','子默','月华'];
+const STORAGE_KEY = 'smart-seat-website-v2';
 
-const NAME_POOL = (() => {
-  const pool = [];
-  for(const s of SURNAME_LIST) for(const g of GIVEN_NAMES) pool.push(s + g);
-  return pool;
-})();
+const Store = {
+  data: {
+    classes: [],      // {id, name, students:[{sno,name}], createdAt}
+    schemes: [],      // {id, classId, name, tpl, rows, cols, grid, assign, createdAt}
+    attendance: {},   // {schemeId: {sno: 'present'|'absent'|'late'}}
+    settings: { theme:'light', activeClassId:null }
+  },
 
-function genStudents(count, seed){
-  const out = [];
-  const start = (seed * 137) % NAME_POOL.length;
-  for(let i=0;i<count;i++){
-    out.push({
-      sno : '2023' + String(seed).padStart(2,'0') + String(i+1).padStart(2,'0'),
-      name: NAME_POOL[(start + i * 97) % NAME_POOL.length]
-    });
+  load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        this.data = Object.assign(this.data, parsed);
+        if(!this.data.settings) this.data.settings = { theme:'light', activeClassId:null };
+      }
+    }catch(e){ console.warn('读取本地数据失败', e); }
+  },
+
+  save(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data)); }
+    catch(e){ toast('保存失败：' + e.message); }
+  },
+
+  /* ---- 班级 ---- */
+  getClass(id){ return this.data.classes.find(c => c.id === id); },
+  addClass(name, students){
+    const c = { id: uid(), name, students: students || [], createdAt: new Date().toLocaleString('zh-CN') };
+    this.data.classes.push(c);
+    if(!this.data.settings.activeClassId) this.data.settings.activeClassId = c.id;
+    this.save(); return c;
+  },
+  removeClass(id){
+    this.data.classes = this.data.classes.filter(c => c.id !== id);
+    this.data.schemes = this.data.schemes.filter(s => s.classId !== id);
+    if(this.data.settings.activeClassId === id){
+      this.data.settings.activeClassId = this.data.classes[0]?.id || null;
+    }
+    this.save();
+  },
+  setActiveClass(id){ this.data.settings.activeClassId = id; this.save(); },
+  getActiveClass(){ return this.getClass(this.data.settings.activeClassId); },
+
+  /* ---- 方案 ---- */
+  addScheme(scheme){
+    scheme.id = uid();
+    scheme.createdAt = new Date().toLocaleString('zh-CN');
+    this.data.schemes.push(scheme);
+    this.save(); return scheme;
+  },
+  getScheme(id){ return this.data.schemes.find(s => s.id === id); },
+  removeScheme(id){
+    this.data.schemes = this.data.schemes.filter(s => s.id !== id);
+    delete this.data.attendance[id];
+    this.save();
+  },
+  renameScheme(id, name){
+    const s = this.getScheme(id);
+    if(s){ s.name = name; this.save(); }
+  },
+
+  /* ---- 考勤 ---- */
+  getAtt(schemeId){ return this.data.attendance[schemeId] || {}; },
+  setAtt(schemeId, sno, status){
+    if(!this.data.attendance[schemeId]) this.data.attendance[schemeId] = {};
+    if(status) this.data.attendance[schemeId][sno] = status;
+    else delete this.data.attendance[schemeId][sno];
+    this.save();
+  },
+  resetAtt(schemeId){
+    this.data.attendance[schemeId] = {};
+    this.save();
   }
-  return out;
-}
-
-const CLASS_DATA = [
-  { name:'计算机科学与技术2023-1班',    count:42, seed:1 },
-  { name:'软件工程2023-2班',            count:38, seed:2 },
-  { name:'数据科学与大数据技术2023-1班', count:45, seed:3 },
-  { name:'网络空间安全2023-1班',        count:36, seed:4 },
-  { name:'人工智能2023-2班',            count:40, seed:5 },
-  { name:'电子信息工程2023-3班',        count:34, seed:6 }
-];
+};
 
 /* =========================================================
-   智慧教室网格构建（6人圆桌）
+   教室模板（构建函数）
    ========================================================= */
 function buildSmartGrid(nx, ny){
   const deskW = 3, deskH = 4;
-  const rows = ny * deskH;
-  const cols = nx * deskW;
-  // 每个圆桌的图案：
-  //   . S .
-  //   S T S
-  //   S T S
-  //   . S .
+  const rows = ny * deskH, cols = nx * deskW;
   const pattern = [
-    ['blank', 'seat', 'blank'],
-    ['seat',  'desk', 'seat'],
-    ['seat',  'desk', 'seat'],
-    ['blank', 'seat', 'blank']
+    ['blank','seat','blank'],
+    ['seat','desk','seat'],
+    ['seat','desk','seat'],
+    ['blank','seat','blank']
   ];
   const grid = [];
-  for (let r = 0; r < rows; r++) {
+  for(let r=0;r<rows;r++){
     grid[r] = [];
-    for (let c = 0; c < cols; c++) {
-      const lr = r % deskH, lc = c % deskW;
-      grid[r][c] = pattern[lr][lc];
-    }
+    for(let c=0;c<cols;c++) grid[r][c] = pattern[r%deskH][c%deskW];
   }
   return { rows, cols, grid };
 }
 
-function getDeskNumber(r, c){
-  const deskW = 3, deskH = 4, nx = 3;
-  const deskRow = Math.floor(r / deskH);
-  const deskCol = Math.floor(c / deskW);
-  return deskRow * nx + deskCol + 1;
-}
-
-/* =========================================================
-   教室模板
-   ========================================================= */
 const TEMPLATES = {
   normal: {
     label:'普通教室', ic:'🏫',
-    build(){
-      const rows = 6, cols = 9;
-      const grid = [];
-      for(let r=0;r<rows;r++){
-        grid[r] = [];
-        for(let c=0;c<cols;c++) grid[r][c] = (c === 4) ? 'aisle' : 'seat';
-      }
-      return { rows, cols, grid };
-    }
+    build(){ const rows=6,cols=9,grid=[]; for(let r=0;r<rows;r++){grid[r]=[];for(let c=0;c<cols;c++)grid[r][c]=(c===4)?'aisle':'seat';} return {rows,cols,grid}; }
   },
-
   multi: {
     label:'多媒体', ic:'🎬',
-    build(){
-      const rows = 7, cols = 9;
-      const grid = [];
-      for(let r=0;r<rows;r++){
-        grid[r] = [];
-        for(let c=0;c<cols;c++) grid[r][c] = (c === 4) ? 'aisle' : 'seat';
-      }
-      return { rows, cols, grid };
-    }
+    build(){ const rows=7,cols=9,grid=[]; for(let r=0;r<rows;r++){grid[r]=[];for(let c=0;c<cols;c++)grid[r][c]=(c===4)?'aisle':'seat';} return {rows,cols,grid}; }
   },
-
   machine: {
     label:'机房', ic:'🖥️',
     build(){
-      const rows = 6;
-      const colTypes = [];
-      for(let b=0;b<3;b++){
-        colTypes.push('seat','seat','seat');
-        if(b < 2) colTypes.push('aisle');
-      }
-      const cols = colTypes.length;
-      const grid = [];
-      for(let r=0;r<rows;r++){
-        grid[r] = [];
-        for(let c=0;c<cols;c++) grid[r][c] = colTypes[c];
-      }
-      return { rows, cols, grid };
+      const rows=6, colTypes=[];
+      for(let b=0;b<3;b++){ colTypes.push('seat','seat','seat'); if(b<2) colTypes.push('aisle'); }
+      const cols = colTypes.length, grid=[];
+      for(let r=0;r<rows;r++){ grid[r]=[]; for(let c=0;c<cols;c++) grid[r][c]=colTypes[c]; }
+      return {rows,cols,grid};
     }
   },
-
   smart: {
     label:'智慧教室', ic:'📺',
-    build(){
-      const nx = 3;
-      const stuCount = state.students.length || 42;
-      const deskCount = Math.max(6, Math.ceil(stuCount / 6));
-      const ny = Math.ceil(deskCount / nx);
-      return buildSmartGrid(nx, ny);
-    }
+    build(){ return buildSmartGrid(3, Math.ceil(((Store.getActiveClass()?.students.length)||42)/6/3) || 3); }
   },
-
   lab: {
     label:'实验室', ic:'🔬',
     build(){
-      const bw = 2, bh = 2;
-      const nx = 4, ny = 3;
-      const rows = ny * bh + (ny - 1);
-      const cols = nx * bw + (nx - 1);
-      const grid = [];
-      for(let r=0;r<rows;r++){
-        grid[r] = [];
-        for(let c=0;c<cols;c++){
-          const inRow = (r % (bh + 1)) < bh;
-          const inCol = (c % (bw + 1)) < bw;
-          grid[r][c] = (inRow && inCol) ? 'seat' : 'blank';
-        }
-      }
-      return { rows, cols, grid };
+      const bw=2,bh=2,nx=4,ny=3;
+      const rows=ny*bh+(ny-1), cols=nx*bw+(nx-1), grid=[];
+      for(let r=0;r<rows;r++){ grid[r]=[]; for(let c=0;c<cols;c++){
+        const inRow=(r%(bh+1))<bh, inCol=(c%(bw+1))<bw;
+        grid[r][c]=(inRow&&inCol)?'seat':'blank';
+      }}
+      return {rows,cols,grid};
     }
   },
-
   custom: {
     label:'自定义', ic:'✏️',
-    build(){
-      const rows = 6, cols = 8;
-      const grid = [];
-      for(let r=0;r<rows;r++){
-        grid[r] = [];
-        for(let c=0;c<cols;c++) grid[r][c] = 'seat';
-      }
-      return { rows, cols, grid };
-    }
+    build(){ const rows=6,cols=8,grid=[]; for(let r=0;r<rows;r++){grid[r]=[];for(let c=0;c<cols;c++)grid[r][c]='seat';} return {rows,cols,grid}; }
   }
 };
 
 /* =========================================================
-   状态
+   排座工作台状态
    ========================================================= */
-const state = {
-  className : '',
-  students  : [],
-  rows      : 6,
-  cols      : 8,
-  grid      : [],
-  assign    : [],
-  history   : [],
-  tpl       : 'normal',
-  aisleMode : false
+const Seat = {
+  rows:6, cols:8, grid:[], assign:[], tpl:'normal', history:[], aisleMode:false,
+  resetFromTemplate(key){
+    const {rows, cols, grid} = TEMPLATES[key].build();
+    this.rows = rows; this.cols = cols; this.grid = grid;
+    this.assign = Array.from({length:rows}, () => Array(cols).fill(null));
+    this.tpl = key;
+    this.history = [];
+  },
+  snapshot(){
+    this.history.push({
+      rows:this.rows, cols:this.cols,
+      grid:this.grid.map(r=>r.slice()),
+      assign:this.assign.map(r=>r.slice())
+    });
+    if(this.history.length > 100) this.history.shift();
+  },
+  undo(){
+    if(!this.history.length) return false;
+    const s = this.history.pop();
+    this.rows=s.rows; this.cols=s.cols; this.grid=s.grid; this.assign=s.assign;
+    return true;
+  }
 };
 
 /* =========================================================
-   历史记录
+   页面路由
    ========================================================= */
-function snapshot(){
-  state.history.push({
-    rows  : state.rows,
-    cols  : state.cols,
-    grid  : state.grid.map(r => r.slice()),
-    assign: state.assign.map(r => r.slice())
+function go(page){
+  $$('.page').forEach(p => p.classList.remove('active'));
+  $$('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  const el = $('page-' + page);
+  if(el) el.classList.add('active');
+
+  if(page === 'dashboard') renderDashboard();
+  if(page === 'classes')   renderClasses();
+  if(page === 'seating')   renderSeating();
+  if(page === 'schemes')   renderSchemes();
+  if(page === 'attendance')renderAttendance();
+  if(page === 'stats')     renderStatsPage();
+}
+$$('.nav-item').forEach(n => n.addEventListener('click', () => go(n.dataset.page)));
+
+/* =========================================================
+   主题
+   ========================================================= */
+function applyTheme(theme){
+  document.body.dataset.theme = theme;
+  Store.data.settings.theme = theme;
+  Store.save();
+  $('btnTheme').textContent = theme === 'dark' ? '☀️ 亮色' : '🌙 暗色';
+}
+$('btnTheme').addEventListener('click', () => {
+  applyTheme(Store.data.settings.theme === 'dark' ? 'light' : 'dark');
+});
+$('btnTheme2')?.addEventListener('click', () => {
+  applyTheme(Store.data.settings.theme === 'dark' ? 'light' : 'dark');
+});
+
+/* =========================================================
+   仪表盘
+   ========================================================= */
+function renderDashboard(){
+  const cls = Store.data.classes;
+  const sch = Store.data.schemes;
+  const totalStudents = cls.reduce((s,c)=>s+c.students.length, 0);
+  let totalAtt = 0, presentCount = 0;
+  Object.values(Store.data.attendance).forEach(map => {
+    Object.values(map).forEach(v => { totalAtt++; if(v === 'present') presentCount++; });
   });
-  if(state.history.length > 120) state.history.shift();
-  updateUndoBtn();
-}
+  const attRate = totalAtt ? Math.round(presentCount/totalAtt*100) : 0;
 
-function undo(){
-  if(!state.history.length) return;
-  const s = state.history.pop();
-  state.rows   = s.rows;
-  state.cols   = s.cols;
-  state.grid   = s.grid;
-  state.assign = s.assign;
-  render();
-  toast('↶ 已撤销');
-}
+  $('dashStats').innerHTML = `
+    <div class="stat-card"><span class="lbl">班级数量</span><span class="val p">${cls.length}</span></div>
+    <div class="stat-card"><span class="lbl">学生总数</span><span class="val p">${totalStudents}</span></div>
+    <div class="stat-card"><span class="lbl">方案数量</span><span class="val p">${sch.length}</span></div>
+    <div class="stat-card"><span class="lbl">考勤记录</span><span class="val g">${totalAtt}</span></div>
+    <div class="stat-card"><span class="lbl">出勤率</span><span class="val ${attRate>=80?'g':'w'}">${attRate}%</span></div>
+  `;
 
-function updateUndoBtn(){
-  $('btnUndo').disabled = state.history.length === 0;
+  const active = Store.getActiveClass();
+  $('dashCurrentClass').innerHTML = active
+    ? `当前班级：<b>${esc(active.name)}</b><br>学生人数：${active.students.length} 人<br>创建时间：${active.createdAt}`
+    : '<span style="color:var(--muted)">暂无选中班级，请先到「班级管理」创建或选择。</span>';
 }
 
 /* =========================================================
-   渲染
+   班级管理
    ========================================================= */
-function render(){
-  $('rowsInput').value = state.rows;
-  $('colsInput').value = state.cols;
-  $('stuCount').textContent = state.students.length;
-  $('classNameLabel').textContent = state.className ? '（' + state.className + '）' : '';
-  renderTemplates();
-  renderGrid();
-  renderStats();
-  updateUndoBtn();
-}
+function renderClasses(){
+  const list = $('classList');
+  const classes = Store.data.classes;
+  const activeId = Store.data.settings.activeClassId;
 
-function renderTemplates(){
-  const box = $('tplGrid');
-  box.innerHTML = '';
-  Object.entries(TEMPLATES).forEach(([key, t]) => {
-    const b = document.createElement('button');
-    b.className = 'tpl-btn' + (state.tpl === key ? ' active' : '');
-    b.innerHTML = `<span class="ic">${t.ic}</span><span>${t.label}</span>`;
-    b.addEventListener('click', () => applyTemplate(key));
-    box.appendChild(b);
-  });
-}
-
-function renderGrid(){
-  const { rows, cols, grid, assign, students } = state;
-  const gridEl = $('grid');
-  gridEl.innerHTML = '';
-
-  /* ===== 智慧教室：特殊渲染 ===== */
-  if(state.tpl === 'smart'){
-    gridEl.style.gridTemplateColumns = `repeat(${cols}, 52px)`;
-    gridEl.style.gap = '3px';
-    gridEl.classList.toggle('aisle-mode', state.aisleMode);
-
-    const frag = document.createDocumentFragment();
-
-    for(let r = 0; r < rows; r++){
-      for(let c = 0; c < cols; c++){
-        const type = grid[r][c];
-
-        /* ---- 圆桌 ---- */
-        if(type === 'desk'){
-          // 跳过下半部分（已经被上半部分跨行覆盖）
-          if(r > 0 && grid[r-1][c] === 'desk') continue;
-
-          const cell = document.createElement('div');
-          cell.className = 'cell smart-desk';
-          cell.style.gridColumn = String(c + 1);
-
-          // 判断是否需要跨两行
-          let span = 1;
-          if(r + 1 < rows && grid[r+1][c] === 'desk') span = 2;
-          cell.style.gridRow = (r + 1) + ' / span ' + span;
-
-          const deskNo = getDeskNumber(r, c);
-          cell.innerHTML =
-            `<div class="desk-num">${deskNo}桌</div>` +
-            `<div class="desk-status">开放</div>`;
-          cell.title = `${deskNo}号圆桌`;
-
-          frag.appendChild(cell);
-          continue;
-        }
-
-        /* ---- 座位 ---- */
-        if(type === 'seat'){
-          const cell = document.createElement('div');
-          cell.className = 'cell smart-seat';
-          cell.style.gridColumn = String(c + 1);
-          cell.style.gridRow = String(r + 1);
-
-          const idx = assign[r][c];
-          const st = (idx != null) ? students[idx] : null;
-          if(st){
-            cell.innerHTML = `<div class="sname">${esc(st.name)}</div>`;
-            cell.title = `${st.name}（${st.sno}）`;
-          }else{
-            cell.innerHTML = '<div class="empty">空</div>';
-            cell.title = '空座位';
-          }
-
-          cell.addEventListener('click', () => onSeatClick(r, c));
-          cell.addEventListener('dblclick', () => onDblClick(r, c));
-          frag.appendChild(cell);
-          continue;
-        }
-
-        /* ---- blank 不渲染 ---- */
-      }
-    }
-    gridEl.appendChild(frag);
+  if(!classes.length){
+    list.innerHTML = `<div class="empty-state"><span class="ic">👥</span>暂无班级，点击下方按钮新建</div>`;
     return;
   }
 
-  /* ===== 普通教室（通用渲染） ===== */
+  list.innerHTML = classes.map(c => `
+    <div class="list-item ${c.id === activeId ? 'active' : ''}">
+      <div class="info">
+        <span class="name">${esc(c.name)}</span>
+        <span class="meta">${c.students.length} 人 · ${c.createdAt}</span>
+      </div>
+      <div class="ops">
+        <button class="btn sm" data-act="select" data-id="${c.id}">${c.id === activeId ? '✓ 当前' : '选择'}</button>
+        <button class="btn sm" data-act="view" data-id="${c.id}">查看</button>
+        <button class="btn sm danger" data-act="del" data-id="${c.id}">删除</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('button[data-act]').forEach(b => {
+    b.addEventListener('click', () => {
+      const {act, id} = b.dataset;
+      if(act === 'select'){ Store.setActiveClass(id); renderClasses(); toast('已切换当前班级'); }
+      if(act === 'view'){
+        const c = Store.getClass(id);
+        const rows = c.students.map(s => `<tr><td>${esc(s.sno)}</td><td>${esc(s.name)}</td></tr>`).join('');
+        showModal(`班级名单 · ${esc(c.name)}`,
+          `<div style="max-height:300px;overflow:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse">
+            <thead><tr style="background:var(--primary-l)"><th style="padding:6px;text-align:left">学号</th><th style="padding:6px;text-align:left">姓名</th></tr></thead>
+            <tbody>${rows || '<tr><td colspan="2" style="padding:10px;text-align:center;color:var(--muted)">暂无学生</td></tr>'}</tbody>
+          </table></div>`, null, '关闭');
+      }
+      if(act === 'del'){
+        if(!confirm(`确定删除班级「${c_name(id)}」？其下的方案也会一并删除。`)) return;
+        Store.removeClass(id);
+        renderClasses(); toast('已删除班级');
+      }
+    });
+  });
+}
+function c_name(id){ const c = Store.getClass(id); return c ? c.name : ''; }
+
+$('btnAddClass').addEventListener('click', () => {
+  showModal('新建班级',
+    `<label class="field">班级名称
+      <input type="text" id="newClassName" placeholder="例如：计算机2023-1班">
+    </label>
+    <div class="hint">创建后可导入学生名单</div>`,
+    () => {
+      const name = $('newClassName').value.trim();
+      if(!name){ toast('请输入班级名称'); return false; }
+      Store.addClass(name, []);
+      renderClasses(); toast('已创建班级');
+    }
+  );
+});
+
+/* ---------- 名单导入 ---------- */
+function parseRoster(text){
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const students = [];
+  for(let i=0;i<lines.length;i++){
+    let line = lines[i];
+    if(i === 0) line = line.replace(/^\uFEFF/, '');
+    const parts = line.split(/[,，\t;；]+/).map(s => s.trim()).filter(Boolean);
+    if(i === 0 && parts.length >= 2 && /学号|姓名|name|id|no/i.test(parts[0]+parts[1])) continue;
+    if(parts.length >= 2) students.push({sno:parts[0], name:parts[1]});
+    else if(parts.length === 1 && parts[0]) students.push({sno:String(20230000 + students.length + 1), name:parts[0]});
+  }
+  return students;
+}
+
+function importStudentsToActive(students, label){
+  const c = Store.getActiveClass();
+  if(!c){ toast('请先选择或创建一个班级'); return false; }
+  c.students = students;
+  Store.save();
+  toast(`✅ 已导入 ${students.length} 名学生到「${c.name}」`);
+  return true;
+}
+
+$('btnImportCsv').addEventListener('click', () => $('csvInput').click());
+$('csvInput').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const students = parseRoster(String(ev.target.result));
+      if(!students.length) throw new Error('未解析到学生数据');
+      importStudentsToActive(students);
+      renderClasses();
+    }catch(err){ toast('导入失败：' + err.message); }
+  };
+  reader.readAsText(f, 'UTF-8');
+  e.target.value = '';
+});
+
+$('btnDownloadTpl').addEventListener('click', () => {
+  const bom = '\uFEFF';
+  const rows = ['学号,姓名','20230101,张伟','20230102,李娜','20230103,王小明'];
+  const csv = bom + rows.join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = '学生名单模板.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('⬇️ 模板已下载');
+});
+
+$('btnPasteList').addEventListener('click', () => {
+  showModal('粘贴学生名单',
+    `<p class="hint" style="margin:0 0 6px">每行「学号,姓名」或仅姓名，导入后覆盖当前班级名单。</p>
+     <textarea id="pasteArea" style="width:100%;height:220px;padding:10px;border-radius:10px;border:1px solid var(--line);font-family:ui-monospace,monospace;font-size:12.5px;resize:vertical;background:var(--card);color:var(--text)"></textarea>`,
+    () => {
+      const text = $('pasteArea').value.trim();
+      if(!text){ toast('内容为空'); return false; }
+      const students = parseRoster(text);
+      if(!students.length){ toast('未解析到学生'); return false; }
+      if(importStudentsToActive(students)) renderClasses();
+    },
+    '导入'
+  );
+});
+
+/* =========================================================
+   排座工作台
+   ========================================================= */
+function renderSeating(){
+  // 模板按钮
+  const tplBox = $('tplGrid');
+  tplBox.innerHTML = Object.entries(TEMPLATES).map(([k,t]) =>
+    `<button class="tpl-btn ${Seat.tpl===k?'active':''}" data-tpl="${k}">
+      <span class="ic">${t.ic}</span><span>${t.label}</span>
+    </button>`
+  ).join('');
+  tplBox.querySelectorAll('.tpl-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      Seat.resetFromTemplate(b.dataset.tpl);
+      renderSeating();
+      toast(`已切换为「${TEMPLATES[b.dataset.tpl].label}」`);
+    });
+  });
+
+  $('rowsInput').value = Seat.rows;
+  $('colsInput').value = Seat.cols;
+
+  renderSeatGrid();
+  renderSeatStats();
+
+  $('btnAisleMode').classList.toggle('active', Seat.aisleMode);
+  $('btnAisleMode').textContent = Seat.aisleMode ? '✋ 过道模式（点击座位添加）' : '➕ 添加过道';
+}
+
+function renderSeatGrid(){
+  const gridEl = $('grid');
+  const {rows, cols, grid, assign} = Seat;
+  const activeClass = Store.getActiveClass();
+  const students = activeClass ? activeClass.students : [];
+
+  /* 智慧教室特殊渲染 */
+  if(Seat.tpl === 'smart'){
+    gridEl.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
+    gridEl.style.gap = '3px';
+    gridEl.classList.toggle('aisle-mode', Seat.aisleMode);
+    const frag = document.createDocumentFragment();
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const t = grid[r][c];
+        if(t === 'desk'){
+          if(r > 0 && grid[r-1][c] === 'desk') continue;
+          const cell = document.createElement('div');
+          cell.className = 'cell smart-desk';
+          cell.style.gridColumn = String(c+1);
+          const span = (r+1<rows && grid[r+1][c]==='desk') ? 2 : 1;
+          cell.style.gridRow = (r+1) + ' / span ' + span;
+          const deskNo = Math.floor(r/4)*3 + Math.floor(c/3) + 1;
+          cell.innerHTML = `<div class="desk-num">${deskNo}桌</div><div style="font-size:9px;font-weight:400;color:#818cf8">开放</div>`;
+          frag.appendChild(cell);
+          continue;
+        }
+        if(t === 'seat'){
+          const cell = document.createElement('div');
+          cell.className = 'cell smart-seat';
+          cell.style.gridColumn = String(c+1);
+          cell.style.gridRow = String(r+1);
+          const idx = assign[r][c];
+          const st = (idx != null) ? students[idx] : null;
+          if(st) cell.innerHTML = `<div class="sname">${esc(st.name)}</div>`;
+          else cell.innerHTML = `<div class="empty">空</div>`;
+          cell.addEventListener('click', () => onSeatClick(r,c));
+          cell.addEventListener('dblclick', () => onSeatDbl(r,c));
+          frag.appendChild(cell);
+        }
+      }
+    }
+    gridEl.replaceChildren(frag);
+    return;
+  }
+
+  /* 通用渲染 */
   const colTpl = [];
   for(let c=0;c<cols;c++){
     let hasSeat = false;
-    for(let r=0;r<rows;r++){
-      const t = grid[r][c];
-      if(t === 'seat'){ hasSeat = true; break; }
-    }
-    colTpl.push(hasSeat ? 'minmax(62px, 1fr)' : '20px');
+    for(let r=0;r<rows;r++) if(grid[r][c] === 'seat'){ hasSeat = true; break; }
+    colTpl.push(hasSeat ? 'minmax(58px, 1fr)' : '18px');
   }
-
   gridEl.style.gridTemplateColumns = colTpl.join(' ');
-  gridEl.style.gap = '7px';
-  gridEl.classList.toggle('aisle-mode', state.aisleMode);
+  gridEl.style.gap = '6px';
+  gridEl.classList.toggle('aisle-mode', Seat.aisleMode);
 
   const frag = document.createDocumentFragment();
-
   for(let r=0;r<rows;r++){
     const rowAllAisle = grid[r].every(v => v === 'aisle' || v === 'blank');
     for(let c=0;c<cols;c++){
-      const type = grid[r][c];
+      const t = grid[r][c];
       const cell = document.createElement('div');
-      cell.className = 'cell ' + type + ((type === 'aisle' && rowAllAisle) ? ' row-aisle' : '');
-
-      if(type === 'seat'){
+      cell.className = 'cell ' + t + ((t==='aisle' && rowAllAisle) ? ' row-aisle' : '');
+      if(t === 'seat'){
         const idx = assign[r][c];
         const st = (idx != null) ? students[idx] : null;
         if(st){
-          cell.innerHTML =
-            `<div class="sname">${esc(st.name)}</div>` +
-            `<div class="sno">${esc(st.sno)}</div>`;
+          cell.innerHTML = `<div class="sname">${esc(st.name)}</div><div class="sno">${esc(st.sno)}</div>`;
           cell.title = `${st.name}（${st.sno}）`;
         }else{
-          cell.innerHTML = '<div class="empty">空位</div>';
-          cell.title = '空座位';
+          cell.innerHTML = `<div class="empty">空位</div>`;
         }
-        cell.addEventListener('click', () => onSeatClick(r, c));
-        cell.addEventListener('dblclick', () => onDblClick(r, c));
-      }
-      else if(type === 'aisle'){
+        cell.addEventListener('click', () => onSeatClick(r,c));
+        cell.addEventListener('dblclick', () => onSeatDbl(r,c));
+      }else if(t === 'aisle'){
         cell.title = '过道 · 双击恢复为座位';
-        cell.addEventListener('click', () => onAisleClick(r, c));
-        cell.addEventListener('dblclick', () => onDblClick(r, c));
+        cell.addEventListener('dblclick', () => onSeatDbl(r,c));
       }
-
       frag.appendChild(cell);
     }
   }
-  gridEl.appendChild(frag);
+  gridEl.replaceChildren(frag);
 }
 
-function renderStats(){
-  const { rows, cols, grid, assign } = state;
-  let totalSeats = 0, filled = 0;
-  for(let r=0;r<rows;r++){
-    for(let c=0;c<cols;c++){
-      if(grid[r][c] === 'seat'){
-        totalSeats++;
-        if(assign[r][c] != null) filled++;
-      }
-    }
-  }
-  $('stats').innerHTML =
-    `座位总数 <b>${totalSeats}</b> · 已安排 <b>${filled}</b> 人 · 班级人数 <b>${state.students.length}</b>`;
+function onSeatClick(r,c){
+  if(!Seat.aisleMode) return;
+  Seat.snapshot();
+  Seat.grid[r][c] = 'aisle';
+  Seat.assign[r][c] = null;
+  renderSeating();
 }
-
-/* =========================================================
-   格子交互
-   ========================================================= */
-function onSeatClick(r, c){
-  if(!state.aisleMode) return;
-  snapshot();
-  state.grid[r][c] = 'aisle';
-  state.assign[r][c] = null;
-  render();
-}
-
-function onAisleClick(r, c){
-  /* 过道单击不做处理，统一交给双击恢复 */
-}
-
-function onDblClick(r, c){
-  if(state.grid[r][c] !== 'aisle') return;
-  snapshot();
-  state.grid[r][c] = 'seat';
-  render();
+function onSeatDbl(r,c){
+  if(Seat.grid[r][c] !== 'aisle') return;
+  Seat.snapshot();
+  Seat.grid[r][c] = 'seat';
+  renderSeating();
   toast('已恢复为座位');
 }
 
-/* =========================================================
-   网格尺寸调整
-   ========================================================= */
-function resizeGrid(newRows, newCols){
-  const ng = [], na = [];
-  for(let r=0;r<newRows;r++){
-    ng[r] = []; na[r] = [];
-    for(let c=0;c<newCols;c++){
-      if(r < state.rows && c < state.cols){
-        ng[r][c] = state.grid[r][c];
-        na[r][c] = state.assign[r][c];
-      }else{
-        ng[r][c] = 'seat';
-        na[r][c] = null;
-      }
-    }
+function renderSeatStats(){
+  const {rows, cols, grid, assign} = Seat;
+  let total = 0, filled = 0;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    if(grid[r][c] === 'seat'){ total++; if(assign[r][c] != null) filled++; }
   }
-  state.rows = newRows;
-  state.cols = newCols;
-  state.grid = ng;
-  state.assign = na;
+  const activeClass = Store.getActiveClass();
+  const stuCount = activeClass ? activeClass.students.length : 0;
+  $('seatStats').innerHTML = `座位总数 <b>${total}</b> · 已安排 <b>${filled}</b> 人 · 班级人数 <b>${stuCount}</b>`;
 }
 
-/* =========================================================
-   应用教室模板
-   ========================================================= */
-function applyTemplate(key){
-  const t = TEMPLATES[key];
-  snapshot();
-
-  const { rows, cols, grid } = t.build();
-  state.rows = rows;
-  state.cols = cols;
-  state.grid = grid;
-  state.assign = Array.from({length: rows}, () => Array(cols).fill(null));
-  state.tpl = key;
-
-  render();
-  toast(`已切换为「${t.label}」布局`);
-}
-
-/* =========================================================
-   排座核心
-   ========================================================= */
-function arrangeSeats(){
-  if(!state.students.length){ toast('请先选择班级或导入名单'); return; }
+/* ---------- 排座 ---------- */
+$('btnArrange').addEventListener('click', () => {
+  const activeClass = Store.getActiveClass();
+  if(!activeClass || !activeClass.students.length){ toast('请先在「班级管理」选择或创建班级并导入名单'); return; }
+  const students = activeClass.students;
 
   const seatCells = [];
-  for(let r=0;r<state.rows;r++)
-    for(let c=0;c<state.cols;c++)
-      if(state.grid[r][c] === 'seat') seatCells.push([r, c]);
-
-  if(!seatCells.length){ toast('当前没有可用座位，请先添加座位'); return; }
-
-  if(seatCells.length < state.students.length){
-    const miss = state.students.length - seatCells.length;
-    if(!confirm(`可用座位 ${seatCells.length} 个，少于学生 ${state.students.length} 人。\n将有 ${miss} 名学生无法安排，是否继续？`)) return;
+  for(let r=0;r<Seat.rows;r++) for(let c=0;c<Seat.cols;c++)
+    if(Seat.grid[r][c] === 'seat') seatCells.push([r,c]);
+  if(!seatCells.length){ toast('当前没有可用座位'); return; }
+  if(seatCells.length < students.length){
+    if(!confirm(`可用座位 ${seatCells.length} 个，少于学生 ${students.length} 人。\n将有 ${students.length - seatCells.length} 人无法安排，是否继续？`)) return;
   }
 
-  snapshot();
+  Seat.snapshot();
+  for(let r=0;r<Seat.rows;r++) for(let c=0;c<Seat.cols;c++) Seat.assign[r][c] = null;
 
-  for(let r=0;r<state.rows;r++)
-    for(let c=0;c<state.cols;c++)
-      state.assign[r][c] = null;
-
-  let idxs = state.students.map((_, i) => i);
+  let idxs = students.map((_,i) => i);
   const mode = $('sortMode').value;
   if(mode === 'random')       shuffle(idxs);
-  else if(mode === 'snoAsc')  idxs.sort((a,b)=> state.students[a].sno.localeCompare(state.students[b].sno));
-  else if(mode === 'snoDesc') idxs.sort((a,b)=> state.students[b].sno.localeCompare(state.students[a].sno));
-  else if(mode === 'name')    idxs.sort((a,b)=> state.students[a].name.localeCompare(state.students[b].name,'zh-Hans-CN'));
+  else if(mode === 'snoAsc')  idxs.sort((a,b) => students[a].sno.localeCompare(students[b].sno));
+  else if(mode === 'snoDesc') idxs.sort((a,b) => students[b].sno.localeCompare(students[a].sno));
+  else if(mode === 'name')    idxs.sort((a,b) => students[a].name.localeCompare(students[b].name, 'zh-Hans-CN'));
 
   let ordered = seatCells;
   if($('snake').checked){
     const rowMap = new Map();
-    seatCells.forEach(([r,c]) => {
-      if(!rowMap.has(r)) rowMap.set(r, []);
-      rowMap.get(r).push([r,c]);
-    });
+    seatCells.forEach(([r,c]) => { if(!rowMap.has(r)) rowMap.set(r,[]); rowMap.get(r).push([r,c]); });
     ordered = [];
-    [...rowMap.keys()].sort((a,b)=>a-b).forEach((r, i) => {
+    [...rowMap.keys()].sort((a,b)=>a-b).forEach((r,i) => {
       const arr = rowMap.get(r);
       if(i % 2 === 1) arr.reverse();
       ordered.push(...arr);
@@ -844,321 +1024,452 @@ function arrangeSeats(){
 
   const n = Math.min(idxs.length, ordered.length);
   for(let i=0;i<n;i++){
-    const [r, c] = ordered[i];
-    state.assign[r][c] = idxs[i];
+    const [r,c] = ordered[i];
+    Seat.assign[r][c] = idxs[i];
   }
-
-  render();
+  renderSeating();
   toast(`✅ 已为 ${n} 名学生排好座位`);
+});
+
+/* ---------- 保存方案 ---------- */
+$('btnSaveScheme').addEventListener('click', () => {
+  const activeClass = Store.getActiveClass();
+  if(!activeClass){ toast('请先选择班级'); return; }
+  let filled = 0;
+  for(let r=0;r<Seat.rows;r++) for(let c=0;c<Seat.cols;c++) if(Seat.assign[r][c] != null) filled++;
+  if(!filled){ toast('当前还没有排座结果，请先点击「生成座位」'); return; }
+
+  showModal('保存方案',
+    `<label class="field">方案名称
+      <input type="text" id="schemeName" value="${esc(activeClass.name)} · ${new Date().toLocaleDateString('zh-CN')}">
+    </label>
+    <div class="hint">方案会保存当前座位布局与分配结果</div>`,
+    () => {
+      const name = $('schemeName').value.trim() || '未命名方案';
+      Store.addScheme({
+        classId: activeClass.id, name,
+        tpl: Seat.tpl, rows: Seat.rows, cols: Seat.cols,
+        grid: Seat.grid.map(r => r.slice()),
+        assign: Seat.assign.map(r => r.slice())
+      });
+      toast('💾 方案已保存');
+    },
+    '保存'
+  );
+});
+
+/* ---------- 手动调整 ---------- */
+$('rowsInput').addEventListener('change', () => {
+  if(Seat.tpl === 'smart'){ toast('智慧教室布局由圆桌自动决定'); $('rowsInput').value = Seat.rows; return; }
+  const v = clamp(parseInt($('rowsInput').value)||1, 1, 30);
+  if(v === Seat.rows){ $('rowsInput').value = Seat.rows; return; }
+  Seat.snapshot();
+  const ng = [], na = [];
+  for(let r=0;r<v;r++){ ng[r]=[]; na[r]=[];
+    for(let c=0;c<Seat.cols;c++){
+      if(r < Seat.rows){ ng[r][c] = Seat.grid[r][c]; na[r][c] = Seat.assign[r][c]; }
+      else { ng[r][c] = 'seat'; na[r][c] = null; }
+    }
+  }
+  Seat.rows = v; Seat.grid = ng; Seat.assign = na;
+  renderSeating();
+});
+$('colsInput').addEventListener('change', () => {
+  if(Seat.tpl === 'smart'){ toast('智慧教室布局由圆桌自动决定'); $('colsInput').value = Seat.cols; return; }
+  const v = clamp(parseInt($('colsInput').value)||1, 1, 30);
+  if(v === Seat.cols){ $('colsInput').value = Seat.cols; return; }
+  Seat.snapshot();
+  const ng = [], na = [];
+  for(let r=0;r<Seat.rows;r++){ ng[r]=[]; na[r]=[];
+    for(let c=0;c<v;c++){
+      if(c < Seat.cols){ ng[r][c] = Seat.grid[r][c]; na[r][c] = Seat.assign[r][c]; }
+      else { ng[r][c] = 'seat'; na[r][c] = null; }
+    }
+  }
+  Seat.cols = v; Seat.grid = ng; Seat.assign = na;
+  renderSeating();
+});
+
+$('btnAisleMode').addEventListener('click', () => {
+  Seat.aisleMode = !Seat.aisleMode;
+  renderSeating();
+  toast(Seat.aisleMode ? '已进入过道模式：点击座位即可变过道' : '已退出过道模式');
+});
+
+$('btnClearAisle').addEventListener('click', () => {
+  Seat.snapshot();
+  for(let r=0;r<Seat.rows;r++) for(let c=0;c<Seat.cols;c++)
+    if(Seat.grid[r][c] === 'aisle') Seat.grid[r][c] = 'seat';
+  renderSeating(); toast('已清除所有过道');
+});
+
+$('btnClearSeats').addEventListener('click', () => {
+  Seat.snapshot();
+  for(let r=0;r<Seat.rows;r++) for(let c=0;c<Seat.cols;c++) Seat.assign[r][c] = null;
+  renderSeating(); toast('已清空座位分配');
+});
+
+$('btnUndo').addEventListener('click', () => {
+  if(Seat.undo()){ renderSeating(); toast('↶ 已撤销'); }
+  else toast('没有可撤销的操作');
+});
+
+/* =========================================================
+   方案库
+   ========================================================= */
+function renderSchemes(){
+  const list = $('schemeList');
+  const schemes = Store.data.schemes;
+  if(!schemes.length){
+    list.innerHTML = `<div class="empty-state"><span class="ic">📁</span>暂无保存的方案，请到「排座工作台」生成座位后保存</div>`;
+    return;
+  }
+  list.innerHTML = schemes.map(s => {
+    const cls = Store.getClass(s.classId);
+    let total = 0, filled = 0;
+    for(let r=0;r<s.rows;r++) for(let c=0;c<s.cols;c++){
+      if(s.grid[r][c] === 'seat'){ total++; if(s.assign[r][c] != null) filled++; }
+    }
+    return `<div class="list-item">
+      <div class="info">
+        <span class="name">${esc(s.name)}</span>
+        <span class="meta">${esc(cls?.name || '未知班级')} · ${filled}/${total} 人 · ${TEMPLATES[s.tpl]?.label || s.tpl} · ${s.createdAt}</span>
+      </div>
+      <div class="ops">
+        <button class="btn sm" data-act="load" data-id="${s.id}">加载</button>
+        <button class="btn sm" data-act="rename" data-id="${s.id}">重命名</button>
+        <button class="btn sm danger" data-act="del" data-id="${s.id}">删除</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('button[data-act]').forEach(b => {
+    b.addEventListener('click', () => {
+      const {act, id} = b.dataset;
+      const s = Store.getScheme(id);
+      if(!s) return;
+      if(act === 'load'){
+        Store.setActiveClass(s.classId);
+        Seat.tpl = s.tpl; Seat.rows = s.rows; Seat.cols = s.cols;
+        Seat.grid = s.grid.map(r => r.slice());
+        Seat.assign = s.assign.map(r => r.slice());
+        Seat.history = [];
+        go('seating');
+        toast(`已加载方案「${s.name}」`);
+      }
+      if(act === 'rename'){
+        showModal('重命名方案',
+          `<label class="field">新名称<input type="text" id="renameVal" value="${esc(s.name)}"></label>`,
+          () => {
+            const v = $('renameVal').value.trim();
+            if(!v){ toast('名称不能为空'); return false; }
+            Store.renameScheme(id, v);
+            renderSchemes(); toast('已重命名');
+          });
+      }
+      if(act === 'del'){
+        if(!confirm(`确定删除方案「${s.name}」？`)) return;
+        Store.removeScheme(id);
+        renderSchemes(); toast('已删除方案');
+      }
+    });
+  });
 }
 
 /* =========================================================
-   班级 / 名单
+   考勤签到
    ========================================================= */
-function loadClass(index){
-  const c = CLASS_DATA[index];
-  state.className = c.name;
-  state.students = genStudents(c.count, c.seed);
+function renderAttendance(){
+  const sel = $('attSchemeSelect');
+  const schemes = Store.data.schemes;
+  if(!schemes.length){
+    sel.innerHTML = '<option value="">暂无方案</option>';
+    $('attGrid').innerHTML = '';
+    $('attStats').textContent = '';
+    return;
+  }
+  const cur = sel.value || schemes[0].id;
+  sel.innerHTML = schemes.map(s => `<option value="${s.id}" ${s.id===cur?'selected':''}>${esc(s.name)}</option>`).join('');
+  sel.value = cur;
+  renderAttGrid();
+}
 
-  // 如果是智慧教室，根据班级人数重建网格
-  if(state.tpl === 'smart'){
-    const nx = 3;
-    const deskCount = Math.max(6, Math.ceil(c.count / 6));
-    const ny = Math.ceil(deskCount / nx);
-    const result = buildSmartGrid(nx, ny);
-    state.rows = result.rows;
-    state.cols = result.cols;
-    state.grid = result.grid;
-    state.assign = Array.from({length: state.rows}, () => Array(state.cols).fill(null));
+$('attSchemeSelect').addEventListener('change', renderAttGrid);
+
+function renderAttGrid(){
+  const schemeId = $('attSchemeSelect').value;
+  const s = Store.getScheme(schemeId);
+  const gridEl = $('attGrid');
+  if(!s){ gridEl.innerHTML = ''; $('attStats').textContent = ''; return; }
+
+  const cls = Store.getClass(s.classId);
+  const students = cls ? cls.students : [];
+  const att = Store.getAtt(schemeId);
+
+  /* 智慧教室 */
+  if(s.tpl === 'smart'){
+    gridEl.style.gridTemplateColumns = `repeat(${s.cols}, 50px)`;
+    gridEl.style.gap = '3px';
+    gridEl.classList.remove('aisle-mode');
+    const frag = document.createDocumentFragment();
+    for(let r=0;r<s.rows;r++){
+      for(let c=0;c<s.cols;c++){
+        const t = s.grid[r][c];
+        if(t === 'desk'){
+          if(r>0 && s.grid[r-1][c]==='desk') continue;
+          const cell = document.createElement('div');
+          cell.className = 'cell smart-desk';
+          cell.style.gridColumn = String(c+1);
+          const span = (r+1<s.rows && s.grid[r+1][c]==='desk') ? 2 : 1;
+          cell.style.gridRow = (r+1) + ' / span ' + span;
+          const deskNo = Math.floor(r/4)*3 + Math.floor(c/3) + 1;
+          cell.innerHTML = `<div class="desk-num">${deskNo}桌</div>`;
+          frag.appendChild(cell);
+          continue;
+        }
+        if(t === 'seat'){
+          const cell = document.createElement('div');
+          cell.className = 'cell smart-seat';
+          cell.style.gridColumn = String(c+1);
+          cell.style.gridRow = String(r+1);
+          const idx = s.assign[r][c];
+          const st = (idx != null) ? students[idx] : null;
+          if(st){
+            const status = att[st.sno];
+            if(status) cell.classList.add(status);
+            cell.innerHTML = `<div class="sname">${esc(st.name)}</div>`;
+            cell.title = `${st.name} · 点击切换考勤状态`;
+            cell.addEventListener('click', () => cycleAtt(schemeId, st.sno));
+          }else{
+            cell.innerHTML = `<div class="empty">空</div>`;
+          }
+          frag.appendChild(cell);
+        }
+      }
+    }
+    gridEl.replaceChildren(frag);
   } else {
-    state.assign = state.assign.map(row => row.map(() => null));
-  }
-
-  render();
-}
-
-function openRosterModal(){
-  $('rosterText').value = '';
-  $('modal').classList.add('show');
-  setTimeout(()=> $('rosterText').focus(), 50);
-}
-function closeRosterModal(){ $('modal').classList.remove('show'); }
-
-function parseRoster(text){
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const students = [];
-  for(let i=0;i<lines.length;i++){
-    let line = lines[i];
-    if(i === 0) line = line.replace(/^\uFEFF/, '');
-
-    const parts = line.split(/[,，\t;；]+/).map(s => s.trim()).filter(Boolean);
-
-    if(i === 0 && parts.length >= 2 &&
-       /学号|姓名|name|id|no/i.test(parts[0] + parts[1])){
-      continue;
+    /* 通用 */
+    const colTpl = [];
+    for(let c=0;c<s.cols;c++){
+      let hasSeat = false;
+      for(let r=0;r<s.rows;r++) if(s.grid[r][c]==='seat'){ hasSeat=true; break; }
+      colTpl.push(hasSeat ? 'minmax(58px, 1fr)' : '18px');
     }
+    gridEl.style.gridTemplateColumns = colTpl.join(' ');
+    gridEl.style.gap = '6px';
+    gridEl.classList.remove('aisle-mode');
+    const frag = document.createDocumentFragment();
+    for(let r=0;r<s.rows;r++){
+      for(let c=0;c<s.cols;c++){
+        const t = s.grid[r][c];
+        const cell = document.createElement('div');
+        cell.className = 'cell ' + t;
+        if(t === 'seat'){
+          const idx = s.assign[r][c];
+          const st = (idx != null) ? students[idx] : null;
+          if(st){
+            const status = att[st.sno];
+            if(status) cell.classList.add(status);
+            cell.innerHTML = `<div class="sname">${esc(st.name)}</div><div class="sno">${esc(st.sno)}</div>`;
+            cell.title = `${st.name} · 点击切换考勤状态`;
+            cell.addEventListener('click', () => cycleAtt(schemeId, st.sno));
+          }else{
+            cell.innerHTML = `<div class="empty">空位</div>`;
+          }
+        }
+        frag.appendChild(cell);
+      }
+    }
+    gridEl.replaceChildren(frag);
+  }
+  renderAttStats(schemeId);
+}
 
-    if(parts.length >= 2){
-      students.push({ sno: parts[0], name: parts[1] });
-    }else if(parts.length === 1 && parts[0]){
-      students.push({ sno: String(20230000 + students.length + 1), name: parts[0] });
+function cycleAtt(schemeId, sno){
+  const cur = Store.getAtt(schemeId)[sno];
+  const next = cur === 'present' ? 'absent' : cur === 'absent' ? 'late' : cur === 'late' ? null : 'present';
+  Store.setAtt(schemeId, sno, next);
+  renderAttGrid();
+}
+
+function renderAttStats(schemeId){
+  const att = Store.getAtt(schemeId);
+  let present = 0, absent = 0, late = 0, none = 0;
+  const s = Store.getScheme(schemeId);
+  const cls = s ? Store.getClass(s.classId) : null;
+  const students = cls ? cls.students : [];
+  const assigned = new Set();
+  if(s){
+    for(let r=0;r<s.rows;r++) for(let c=0;c<s.cols;c++){
+      const idx = s.assign[r][c];
+      if(idx != null) assigned.add(students[idx]?.sno);
     }
   }
-  return students;
+  assigned.forEach(sno => {
+    const v = att[sno];
+    if(v === 'present') present++;
+    else if(v === 'absent') absent++;
+    else if(v === 'late') late++;
+    else none++;
+  });
+  $('attStats').innerHTML =
+    `出勤 <b style="color:var(--success)">${present}</b> · 迟到 <b style="color:var(--warn)">${late}</b> · 缺勤 <b style="color:var(--danger)">${absent}</b> · 未标记 <b>${none}</b>`;
 }
 
-function applyRosterStudents(students, label){
-  if(!students.length){ toast('未解析到有效学生'); return false; }
-
-  snapshot();
-  state.students  = students;
-  state.className = label || '手动导入名单';
-  state.assign    = state.assign.map(row => row.map(() => null));
-
-  // 智慧教室需重建网格
-  if(state.tpl === 'smart'){
-    const nx = 3;
-    const deskCount = Math.max(6, Math.ceil(students.length / 6));
-    const ny = Math.ceil(deskCount / nx);
-    const result = buildSmartGrid(nx, ny);
-    state.rows = result.rows;
-    state.cols = result.cols;
-    state.grid = result.grid;
-    state.assign = Array.from({length: state.rows}, () => Array(state.cols).fill(null));
+$('btnAllPresent').addEventListener('click', () => {
+  const schemeId = $('attSchemeSelect').value;
+  const s = Store.getScheme(schemeId);
+  if(!s){ toast('请先选择方案'); return; }
+  const cls = Store.getClass(s.classId);
+  const students = cls ? cls.students : [];
+  const assigned = new Set();
+  for(let r=0;r<s.rows;r++) for(let c=0;c<s.cols;c++){
+    const idx = s.assign[r][c];
+    if(idx != null && students[idx]) assigned.add(students[idx].sno);
   }
+  Store.data.attendance[schemeId] = {};
+  assigned.forEach(sno => Store.data.attendance[schemeId][sno] = 'present');
+  Store.save();
+  renderAttGrid();
+  toast('已标记全部出勤');
+});
 
-  $('classSelect').value = '__custom__';
-  render();
-  toast(`✅ 已导入 ${students.length} 名学生`);
-  return true;
-}
+$('btnResetAtt').addEventListener('click', () => {
+  const schemeId = $('attSchemeSelect').value;
+  if(!schemeId) return;
+  if(!confirm('确定重置该方案的考勤记录？')) return;
+  Store.resetAtt(schemeId);
+  renderAttGrid();
+  toast('已重置考勤记录');
+});
 
-function applyRosterFromTextarea(){
-  const text = $('rosterText').value.trim();
-  if(!text){ toast('名单为空'); return; }
-  if(applyRosterStudents(parseRoster(text), '手动粘贴名单')){
-    closeRosterModal();
-  }
-}
-
-function importRosterFile(file){
-  const reader = new FileReader();
-  reader.onload = e => {
-    try{
-      const students = parseRoster(String(e.target.result));
-      if(!students.length) throw new Error('未解析到学生数据');
-      applyRosterStudents(students, file.name.replace(/\.[^.]+$/, ''));
-    }catch(err){
-      toast('导入失败：' + err.message);
+/* =========================================================
+   数据统计
+   ========================================================= */
+function renderStatsPage(){
+  const cls = Store.data.classes;
+  const sch = Store.data.schemes;
+  const totalStudents = cls.reduce((s,c) => s + c.students.length, 0);
+  let totalSeats = 0, totalAssigned = 0;
+  sch.forEach(s => {
+    for(let r=0;r<s.rows;r++) for(let c=0;c<s.cols;c++){
+      if(s.grid[r][c] === 'seat'){ totalSeats++; if(s.assign[r][c] != null) totalAssigned++; }
     }
-  };
-  reader.readAsText(file, 'UTF-8');
-}
+  });
+  let totalAtt = 0, presentCount = 0, lateCount = 0, absentCount = 0;
+  Object.values(Store.data.attendance).forEach(map => {
+    Object.values(map).forEach(v => {
+      totalAtt++;
+      if(v === 'present') presentCount++;
+      else if(v === 'late') lateCount++;
+      else if(v === 'absent') absentCount++;
+    });
+  });
+  const attRate = totalAtt ? Math.round((presentCount + lateCount * 0.5) / totalAtt * 100) : 0;
 
-function downloadTemplate(){
-  const bom = '\uFEFF';
-  const rows = [
-    '学号,姓名',
-    '20230101,张伟',
-    '20230102,李娜',
-    '20230103,王小明',
-    '20230104,赵敏'
-  ];
-  const csv = bom + rows.join('\r\n');
-  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url;
-  a.download = '学生名单模板.csv';
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('⬇️ 模板已下载');
+  $('statsCards').innerHTML = `
+    <div class="stat-card"><span class="lbl">班级数量</span><span class="val p">${cls.length}</span></div>
+    <div class="stat-card"><span class="lbl">学生总数</span><span class="val p">${totalStudents}</span></div>
+    <div class="stat-card"><span class="lbl">方案数量</span><span class="val p">${sch.length}</span></div>
+    <div class="stat-card"><span class="lbl">座位总数</span><span class="val p">${totalSeats}</span></div>
+    <div class="stat-card"><span class="lbl">已安排座位</span><span class="val g">${totalAssigned}</span></div>
+    <div class="stat-card"><span class="lbl">座位使用率</span><span class="val ${totalSeats && totalAssigned/totalSeats>=0.8?'g':'w'}">${totalSeats?Math.round(totalAssigned/totalSeats*100):0}%</span></div>
+    <div class="stat-card"><span class="lbl">出勤</span><span class="val g">${presentCount}</span></div>
+    <div class="stat-card"><span class="lbl">迟到</span><span class="val w">${lateCount}</span></div>
+    <div class="stat-card"><span class="lbl">缺勤</span><span class="val" style="color:var(--danger)">${absentCount}</span></div>
+    <div class="stat-card"><span class="lbl">综合出勤率</span><span class="val ${attRate>=80?'g':'w'}">${attRate}%</span></div>
+  `;
+
+  if(!cls.length){
+    $('statsTable').innerHTML = `<div class="empty-state"><span class="ic">📊</span>暂无班级数据</div>`;
+    return;
+  }
+  $('statsTable').innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12.5px">
+    <thead><tr style="background:var(--primary-l);color:var(--primary-d)">
+      <th style="padding:8px;text-align:left;border-radius:8px 0 0 8px">班级</th>
+      <th style="padding:8px;text-align:center">学生数</th>
+      <th style="padding:8px;text-align:center">方案数</th>
+      <th style="padding:8px;text-align:center;border-radius:0 8px 8px 0">创建时间</th>
+    </tr></thead>
+    <tbody>${cls.map(c => {
+      const sc = sch.filter(s => s.classId === c.id).length;
+      return `<tr style="border-bottom:1px solid var(--line)">
+        <td style="padding:8px">${esc(c.name)}</td>
+        <td style="padding:8px;text-align:center">${c.students.length}</td>
+        <td style="padding:8px;text-align:center">${sc}</td>
+        <td style="padding:8px;text-align:center;color:var(--muted)">${c.createdAt}</td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
 }
 
 /* =========================================================
-   保存 / 导出 / 导入
+   设置 · 数据导入导出
    ========================================================= */
-function buildPayload(){
-  return {
-    version  : 3,
-    className: state.className,
-    savedAt  : new Date().toLocaleString('zh-CN'),
-    rows     : state.rows,
-    cols     : state.cols,
-    grid     : state.grid,
-    assign   : state.assign,
-    students : state.students,
-    tpl      : state.tpl
-  };
-}
+$('btnSaveAll').addEventListener('click', () => { Store.save(); toast('💾 所有数据已保存到本地'); });
 
-function saveLayout(){
-  try{
-    localStorage.setItem('smart-seat-layout', JSON.stringify(buildPayload()));
-    toast('💾 已保存到本地浏览器');
-  }catch(e){
-    toast('保存失败：' + e.message);
-  }
-}
-
-function exportJSON(){
-  const data = buildPayload();
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const d    = new Date();
+$('btnExportAll').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(Store.data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
   const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   a.href = url;
-  a.download = `座位表_${state.className || '未命名'}_${stamp}.json`;
+  a.download = `智慧排座数据_${stamp}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('📤 已导出 JSON 文件');
-}
+  toast('📤 已导出全部数据');
+});
 
-function importJSON(file){
+$('btnImportAll').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = ev => {
     try{
-      const data = JSON.parse(e.target.result);
-      if(!data.grid || !data.assign) throw new Error('文件格式不正确');
-      snapshot();
-      state.className = data.className || '导入的座位表';
-      state.students  = data.students || [];
-      state.rows      = data.rows;
-      state.cols      = data.cols;
-      state.grid      = data.grid;
-      state.assign    = data.assign;
-      state.tpl       = data.tpl || 'custom';
-      render();
-      toast('📂 导入成功');
-    }catch(err){
-      toast('导入失败：' + err.message);
-    }
+      const data = JSON.parse(ev.target.result);
+      if(!data.classes) throw new Error('数据格式不正确');
+      if(!confirm('导入将覆盖当前所有数据，确定继续？')) return;
+      Store.data = Object.assign(Store.data, data);
+      Store.save();
+      applyTheme(Store.data.settings.theme || 'light');
+      go('dashboard');
+      toast('📂 数据导入成功');
+    }catch(err){ toast('导入失败：' + err.message); }
   };
-  reader.readAsText(file);
-}
+  reader.readAsText(f);
+  e.target.value = '';
+});
+
+$('btnClearAll').addEventListener('click', () => {
+  if(!confirm('⚠️ 将清空所有班级、方案、考勤数据，且不可恢复。确定继续？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  Store.data = { classes:[], schemes:[], attendance:{}, settings:{theme:'light', activeClassId:null} };
+  applyTheme('light');
+  Seat.resetFromTemplate('normal');
+  go('dashboard');
+  toast('已清空所有数据');
+});
 
 /* =========================================================
-   过道模式
-   ========================================================= */
-function toggleAisleMode(){
-  state.aisleMode = !state.aisleMode;
-  const btn = $('btnAisleMode');
-  btn.classList.toggle('active', state.aisleMode);
-  btn.textContent = state.aisleMode ? '✋ 过道模式（点击格子添加）' : '➕ 添加过道';
-  $('grid').classList.toggle('aisle-mode', state.aisleMode);
-  toast(state.aisleMode
-    ? '已进入过道模式：点击任意座位即可变成过道'
-    : '已退出过道模式');
-}
-
-/* =========================================================
-   初始化 & 事件绑定
+   初始化
    ========================================================= */
 function init(){
-  const sel = $('classSelect');
-  CLASS_DATA.forEach((c, i) => {
-    const o = document.createElement('option');
-    o.value = i;
-    o.textContent = `${c.name}（${c.count}人）`;
-    sel.appendChild(o);
-  });
-  const customOpt = document.createElement('option');
-  customOpt.value = '__custom__';
-  customOpt.textContent = '（自定义名单）';
-  customOpt.disabled = true;
-  sel.appendChild(customOpt);
+  Store.load();
+  applyTheme(Store.data.settings.theme || 'light');
 
-  sel.addEventListener('change', () => {
-    if(sel.value === '__custom__') return;
-    loadClass(+sel.value);
-  });
+  /* 首次使用：创建示例班级，方便体验 */
+  if(!Store.data.classes.length){
+    const demo = ['张伟','李娜','王小明','赵敏','刘洋','陈静','杨帆','周涛','吴磊','郑爽',
+                  '孙怡','马超','朱琳','胡军','郭敬','林峰','何洁','高远','罗鹏','梁静',
+                  '宋佳','唐磊','许可','邓超','冯雪','曾毅','彭飞','吕梁','苏晴','蒋欣'];
+    const students = demo.map((n,i) => ({ sno: '2023' + String(i+1).padStart(4,'0'), name:n }));
+    Store.addClass('示例班级 · 计算机2023-1班', students);
+  }
 
-  $('btnPasteRoster').addEventListener('click', openRosterModal);
-  $('modalCancel').addEventListener('click', closeRosterModal);
-  $('modalOk').addEventListener('click', applyRosterFromTextarea);
-  $('modal').addEventListener('click', e => { if(e.target.id === 'modal') closeRosterModal(); });
-
-  $('btnImportRoster').addEventListener('click', () => $('rosterFileInput').click());
-  $('rosterFileInput').addEventListener('change', e => {
-    const f = e.target.files[0];
-    if(f) importRosterFile(f);
-    e.target.value = '';
-  });
-
-  $('btnTemplate').addEventListener('click', downloadTemplate);
-  $('btnArrange').addEventListener('click', arrangeSeats);
-
-  $('rowsInput').addEventListener('change', () => {
-    if(state.tpl === 'smart'){
-      toast('智慧教室布局由圆桌数量自动决定，请切换其他模板调整');
-      $('rowsInput').value = state.rows;
-      return;
-    }
-    const v = clamp(parseInt($('rowsInput').value) || 1, 1, 30);
-    if(v === state.rows){ $('rowsInput').value = state.rows; return; }
-    snapshot();
-    resizeGrid(v, state.cols);
-    render();
-  });
-
-  $('colsInput').addEventListener('change', () => {
-    if(state.tpl === 'smart'){
-      toast('智慧教室布局由圆桌数量自动决定，请切换其他模板调整');
-      $('colsInput').value = state.cols;
-      return;
-    }
-    const v = clamp(parseInt($('colsInput').value) || 1, 1, 30);
-    if(v === state.cols){ $('colsInput').value = state.cols; return; }
-    snapshot();
-    resizeGrid(state.rows, v);
-    render();
-  });
-
-  $('btnAisleMode').addEventListener('click', toggleAisleMode);
-
-  $('btnClearAisle').addEventListener('click', () => {
-    snapshot();
-    for(let r=0;r<state.rows;r++)
-      for(let c=0;c<state.cols;c++)
-        if(state.grid[r][c] === 'aisle') state.grid[r][c] = 'seat';
-    render();
-    toast('已清除所有过道');
-  });
-
-  $('btnClearSeats').addEventListener('click', () => {
-    snapshot();
-    for(let r=0;r<state.rows;r++)
-      for(let c=0;c<state.cols;c++)
-        state.assign[r][c] = null;
-    render();
-    toast('已清空座位分配');
-  });
-
-  $('btnUndo').addEventListener('click', undo);
-  $('btnSave').addEventListener('click', saveLayout);
-  $('btnExport').addEventListener('click', exportJSON);
-  $('btnPrint').addEventListener('click', () => window.print());
-  $('btnImport').addEventListener('click', () => $('fileInput').click());
-  $('fileInput').addEventListener('change', e => {
-    const f = e.target.files[0];
-    if(f) importJSON(f);
-    e.target.value = '';
-  });
-
-  document.addEventListener('keydown', e => {
-    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){
-      e.preventDefault();
-      undo();
-    }
-    if(e.key === 'Escape' && state.aisleMode){
-      toggleAisleMode();
-    }
-  });
-
-  applyTemplate('normal');
-  loadClass(0);
-  $('classSelect').value = '0';
+  Seat.resetFromTemplate('normal');
+  go('dashboard');
 }
 
 document.addEventListener('DOMContentLoaded', init);
