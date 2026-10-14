@@ -245,7 +245,7 @@ button.btn:active{transform:translateY(1px);}
 <body data-theme="light">
 
 <header class="topbar">
-  <div class="brand">🪑 智慧排座 · 班级管理平台 <span class="ver">v2.0</span></div>
+  <div class="brand">🪑 智慧排座 · 班级管理平台 <span class="ver">v2.1</span></div>
   <div class="top-actions">
     <button id="btnTheme" title="切换主题">🌙 暗色</button>
     <button id="btnSaveAll" class="primary" title="保存所有数据">💾 保存</button>
@@ -253,7 +253,6 @@ button.btn:active{transform:translateY(1px);}
 </header>
 
 <div class="app">
-  <!-- ============ 侧边栏导航 ============ -->
   <nav class="sidebar">
     <div class="nav-item active" data-page="dashboard"><span class="ic">📊</span> 仪表盘</div>
     <div class="nav-item" data-page="classes"><span class="ic">👥</span> 班级管理</div>
@@ -264,7 +263,6 @@ button.btn:active{transform:translateY(1px);}
     <div class="nav-item" data-page="settings"><span class="ic">⚙️</span> 设置</div>
   </nav>
 
-  <!-- ============ 内容区 ============ -->
   <main class="content">
 
     <!-- ---------- 仪表盘 ---------- -->
@@ -274,7 +272,7 @@ button.btn:active{transform:translateY(1px);}
         <p>快速了解当前数据状态，一键进入常用功能</p>
       </div>
       <div class="grid3" id="dashStats"></div>
-      <div class="grid2 mt8" style="margin-top:14px">
+      <div class="grid2" style="margin-top:14px">
         <div class="card">
           <h3>⚡ 快捷操作</h3>
           <div class="list">
@@ -309,10 +307,21 @@ button.btn:active{transform:translateY(1px);}
             <button class="btn" id="btnImportCsv">📁 导入 CSV/TXT</button>
             <button class="btn" id="btnDownloadTpl">⬇️ 下载模板</button>
           </div>
+          <label class="field mt8">文件编码
+            <select id="csvEncoding">
+              <option value="auto">🔄 自动检测（推荐）</option>
+              <option value="utf-8">UTF-8</option>
+              <option value="gbk">GBK / GB2312（Excel 默认）</option>
+              <option value="gb18030">GB18030</option>
+              <option value="big5">Big5（繁体中文）</option>
+              <option value="utf-16le">UTF-16 LE</option>
+            </select>
+          </label>
           <button class="btn mt8" id="btnPasteList" style="width:100%">📋 手动粘贴名单</button>
           <div class="hint">
             支持格式：每行「学号,姓名」或仅姓名。<br>
-            导入后自动覆盖当前选中班级的名单。
+            导入后自动覆盖当前选中班级的名单。<br>
+            中文乱码时请切换「文件编码」后重新导入。
           </div>
         </div>
       </div>
@@ -392,6 +401,7 @@ button.btn:active{transform:translateY(1px);}
             <button class="btn sm" id="btnResetAtt">重置</button>
           </div>
         </div>
+        <div class="hint">点击座位循环切换：未标记 → 出勤 → 缺勤 → 迟到 → 未标记</div>
       </div>
       <div class="stage" style="margin-top:18px">
         <div class="grid-wrap">
@@ -408,7 +418,7 @@ button.btn:active{transform:translateY(1px);}
         <p>班级、座位、考勤的整体数据</p>
       </div>
       <div class="grid3" id="statsCards"></div>
-      <div class="card mt8" style="margin-top:14px">
+      <div class="card" style="margin-top:14px">
         <h3>📋 班级概览</h3>
         <div id="statsTable"></div>
       </div>
@@ -485,15 +495,47 @@ $('modalCancel').addEventListener('click', closeModal);
 $('modal').addEventListener('click', e => { if(e.target.id === 'modal') closeModal(); });
 
 /* =========================================================
+   编码检测（解决中文乱码）
+   ========================================================= */
+function decodeBuffer(buffer, encoding){
+  const bytes = new Uint8Array(buffer);
+
+  /* 1. BOM 优先识别 */
+  if(bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF){
+    return new TextDecoder('utf-8').decode(buffer.slice(3));
+  }
+  if(bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE){
+    return new TextDecoder('utf-16le').decode(buffer.slice(2));
+  }
+  if(bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF){
+    return new TextDecoder('utf-16be').decode(buffer.slice(2));
+  }
+
+  /* 2. 用户手动指定 */
+  if(encoding && encoding !== 'auto'){
+    try{ return new TextDecoder(encoding).decode(buffer); }
+    catch(e){ console.warn('指定编码失败，回退自动检测', e); }
+  }
+
+  /* 3. 自动检测：先用 UTF-8 严格模式，失败则用 GBK */
+  try{
+    return new TextDecoder('utf-8', {fatal:true}).decode(buffer);
+  }catch(e){
+    try{ return new TextDecoder('gbk').decode(buffer); }
+    catch(e2){ return new TextDecoder('utf-8').decode(buffer); }
+  }
+}
+
+/* =========================================================
    数据层
    ========================================================= */
 const STORAGE_KEY = 'smart-seat-website-v2';
 
 const Store = {
   data: {
-    classes: [],      // {id, name, students:[{sno,name}], createdAt}
-    schemes: [],      // {id, classId, name, tpl, rows, cols, grid, assign, createdAt}
-    attendance: {},   // {schemeId: {sno: 'present'|'absent'|'late'}}
+    classes: [],
+    schemes: [],
+    attendance: {},
     settings: { theme:'light', activeClassId:null }
   },
 
@@ -513,7 +555,6 @@ const Store = {
     catch(e){ toast('保存失败：' + e.message); }
   },
 
-  /* ---- 班级 ---- */
   getClass(id){ return this.data.classes.find(c => c.id === id); },
   addClass(name, students){
     const c = { id: uid(), name, students: students || [], createdAt: new Date().toLocaleString('zh-CN') };
@@ -532,7 +573,6 @@ const Store = {
   setActiveClass(id){ this.data.settings.activeClassId = id; this.save(); },
   getActiveClass(){ return this.getClass(this.data.settings.activeClassId); },
 
-  /* ---- 方案 ---- */
   addScheme(scheme){
     scheme.id = uid();
     scheme.createdAt = new Date().toLocaleString('zh-CN');
@@ -550,7 +590,6 @@ const Store = {
     if(s){ s.name = name; this.save(); }
   },
 
-  /* ---- 考勤 ---- */
   getAtt(schemeId){ return this.data.attendance[schemeId] || {}; },
   setAtt(schemeId, sno, status){
     if(!this.data.attendance[schemeId]) this.data.attendance[schemeId] = {};
@@ -565,7 +604,7 @@ const Store = {
 };
 
 /* =========================================================
-   教室模板（构建函数）
+   教室模板构建
    ========================================================= */
 function buildSmartGrid(nx, ny){
   const deskW = 3, deskH = 4;
@@ -587,11 +626,19 @@ function buildSmartGrid(nx, ny){
 const TEMPLATES = {
   normal: {
     label:'普通教室', ic:'🏫',
-    build(){ const rows=6,cols=9,grid=[]; for(let r=0;r<rows;r++){grid[r]=[];for(let c=0;c<cols;c++)grid[r][c]=(c===4)?'aisle':'seat';} return {rows,cols,grid}; }
+    build(){
+      const rows=6, cols=9, grid=[];
+      for(let r=0;r<rows;r++){ grid[r]=[]; for(let c=0;c<cols;c++) grid[r][c]=(c===4)?'aisle':'seat'; }
+      return {rows,cols,grid};
+    }
   },
   multi: {
     label:'多媒体', ic:'🎬',
-    build(){ const rows=7,cols=9,grid=[]; for(let r=0;r<rows;r++){grid[r]=[];for(let c=0;c<cols;c++)grid[r][c]=(c===4)?'aisle':'seat';} return {rows,cols,grid}; }
+    build(){
+      const rows=7, cols=9, grid=[];
+      for(let r=0;r<rows;r++){ grid[r]=[]; for(let c=0;c<cols;c++) grid[r][c]=(c===4)?'aisle':'seat'; }
+      return {rows,cols,grid};
+    }
   },
   machine: {
     label:'机房', ic:'🖥️',
@@ -605,38 +652,58 @@ const TEMPLATES = {
   },
   smart: {
     label:'智慧教室', ic:'📺',
-    build(){ return buildSmartGrid(3, Math.ceil(((Store.getActiveClass()?.students.length)||42)/6/3) || 3); }
+    build(){
+      const active = Store.getActiveClass();
+      const stuCount = (active && active.students.length) || 42;
+      const nx = 3;
+      const deskCount = Math.max(6, Math.ceil(stuCount / 6));
+      const ny = Math.ceil(deskCount / nx);
+      return buildSmartGrid(nx, ny);
+    }
   },
   lab: {
     label:'实验室', ic:'🔬',
     build(){
-      const bw=2,bh=2,nx=4,ny=3;
-      const rows=ny*bh+(ny-1), cols=nx*bw+(nx-1), grid=[];
-      for(let r=0;r<rows;r++){ grid[r]=[]; for(let c=0;c<cols;c++){
-        const inRow=(r%(bh+1))<bh, inCol=(c%(bw+1))<bw;
-        grid[r][c]=(inRow&&inCol)?'seat':'blank';
-      }}
+      const bw=2, bh=2, nx=4, ny=3;
+      const rows = ny*bh + (ny-1);
+      const cols = nx*bw + (nx-1);
+      const grid = [];
+      for(let r=0;r<rows;r++){
+        grid[r]=[];
+        for(let c=0;c<cols;c++){
+          const inRow = (r % (bh+1)) < bh;
+          const inCol = (c % (bw+1)) < bw;
+          grid[r][c] = (inRow && inCol) ? 'seat' : 'blank';
+        }
+      }
       return {rows,cols,grid};
     }
   },
   custom: {
     label:'自定义', ic:'✏️',
-    build(){ const rows=6,cols=8,grid=[]; for(let r=0;r<rows;r++){grid[r]=[];for(let c=0;c<cols;c++)grid[r][c]='seat';} return {rows,cols,grid}; }
+    build(){
+      const rows=6, cols=8, grid=[];
+      for(let r=0;r<rows;r++){ grid[r]=[]; for(let c=0;c<cols;c++) grid[r][c]='seat'; }
+      return {rows,cols,grid};
+    }
   }
 };
 
 /* =========================================================
-   排座工作台状态
+   排座状态
    ========================================================= */
 const Seat = {
   rows:6, cols:8, grid:[], assign:[], tpl:'normal', history:[], aisleMode:false,
+
   resetFromTemplate(key){
     const {rows, cols, grid} = TEMPLATES[key].build();
     this.rows = rows; this.cols = cols; this.grid = grid;
     this.assign = Array.from({length:rows}, () => Array(cols).fill(null));
     this.tpl = key;
     this.history = [];
+    this.aisleMode = false;
   },
+
   snapshot(){
     this.history.push({
       rows:this.rows, cols:this.cols,
@@ -645,6 +712,7 @@ const Seat = {
     });
     if(this.history.length > 100) this.history.shift();
   },
+
   undo(){
     if(!this.history.length) return false;
     const s = this.history.pop();
@@ -654,7 +722,7 @@ const Seat = {
 };
 
 /* =========================================================
-   页面路由
+   路由
    ========================================================= */
 function go(page){
   $$('.page').forEach(p => p.classList.remove('active'));
@@ -683,7 +751,7 @@ function applyTheme(theme){
 $('btnTheme').addEventListener('click', () => {
   applyTheme(Store.data.settings.theme === 'dark' ? 'light' : 'dark');
 });
-$('btnTheme2')?.addEventListener('click', () => {
+$('btnTheme2').addEventListener('click', () => {
   applyTheme(Store.data.settings.theme === 'dark' ? 'light' : 'dark');
 });
 
@@ -747,22 +815,25 @@ function renderClasses(){
       if(act === 'select'){ Store.setActiveClass(id); renderClasses(); toast('已切换当前班级'); }
       if(act === 'view'){
         const c = Store.getClass(id);
-        const rows = c.students.map(s => `<tr><td>${esc(s.sno)}</td><td>${esc(s.name)}</td></tr>`).join('');
+        const rows = c.students.map(s => `<tr><td style="padding:5px 8px">${esc(s.sno)}</td><td style="padding:5px 8px">${esc(s.name)}</td></tr>`).join('');
         showModal(`班级名单 · ${esc(c.name)}`,
           `<div style="max-height:300px;overflow:auto"><table style="width:100%;font-size:12.5px;border-collapse:collapse">
-            <thead><tr style="background:var(--primary-l)"><th style="padding:6px;text-align:left">学号</th><th style="padding:6px;text-align:left">姓名</th></tr></thead>
+            <thead><tr style="background:var(--primary-l);color:var(--primary-d)">
+              <th style="padding:6px 8px;text-align:left">学号</th>
+              <th style="padding:6px 8px;text-align:left">姓名</th>
+            </tr></thead>
             <tbody>${rows || '<tr><td colspan="2" style="padding:10px;text-align:center;color:var(--muted)">暂无学生</td></tr>'}</tbody>
           </table></div>`, null, '关闭');
       }
       if(act === 'del'){
-        if(!confirm(`确定删除班级「${c_name(id)}」？其下的方案也会一并删除。`)) return;
+        const c = Store.getClass(id);
+        if(!confirm(`确定删除班级「${c ? c.name : ''}」？其下的方案也会一并删除。`)) return;
         Store.removeClass(id);
         renderClasses(); toast('已删除班级');
       }
     });
   });
 }
-function c_name(id){ const c = Store.getClass(id); return c ? c.name : ''; }
 
 $('btnAddClass').addEventListener('click', () => {
   showModal('新建班级',
@@ -779,7 +850,7 @@ $('btnAddClass').addEventListener('click', () => {
   );
 });
 
-/* ---------- 名单导入 ---------- */
+/* ---------- 名单解析 ---------- */
 function parseRoster(text){
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const students = [];
@@ -788,13 +859,16 @@ function parseRoster(text){
     if(i === 0) line = line.replace(/^\uFEFF/, '');
     const parts = line.split(/[,，\t;；]+/).map(s => s.trim()).filter(Boolean);
     if(i === 0 && parts.length >= 2 && /学号|姓名|name|id|no/i.test(parts[0]+parts[1])) continue;
-    if(parts.length >= 2) students.push({sno:parts[0], name:parts[1]});
-    else if(parts.length === 1 && parts[0]) students.push({sno:String(20230000 + students.length + 1), name:parts[0]});
+    if(parts.length >= 2){
+      students.push({sno:parts[0], name:parts[1]});
+    }else if(parts.length === 1 && parts[0]){
+      students.push({sno:String(20230000 + students.length + 1), name:parts[0]});
+    }
   }
   return students;
 }
 
-function importStudentsToActive(students, label){
+function importStudentsToActive(students){
   const c = Store.getActiveClass();
   if(!c){ toast('请先选择或创建一个班级'); return false; }
   c.students = students;
@@ -803,34 +877,42 @@ function importStudentsToActive(students, label){
   return true;
 }
 
+/* ---------- 导入 CSV / TXT（带编码检测） ---------- */
 $('btnImportCsv').addEventListener('click', () => $('csvInput').click());
+
 $('csvInput').addEventListener('change', e => {
   const f = e.target.files[0]; if(!f) return;
+  const enc = $('csvEncoding') ? $('csvEncoding').value : 'auto';
   const reader = new FileReader();
   reader.onload = ev => {
     try{
-      const students = parseRoster(String(ev.target.result));
+      const text = decodeBuffer(ev.target.result, enc);
+      const students = parseRoster(text);
       if(!students.length) throw new Error('未解析到学生数据');
       importStudentsToActive(students);
       renderClasses();
     }catch(err){ toast('导入失败：' + err.message); }
   };
-  reader.readAsText(f, 'UTF-8');
+  reader.readAsArrayBuffer(f);
   e.target.value = '';
 });
 
+/* ---------- 下载模板 ---------- */
 $('btnDownloadTpl').addEventListener('click', () => {
   const bom = '\uFEFF';
-  const rows = ['学号,姓名','20230101,张伟','20230102,李娜','20230103,王小明'];
+  const rows = ['学号,姓名','20230101,张伟','20230102,李娜','20230103,王小明','20230104,赵敏'];
   const csv = bom + rows.join('\r\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = '学生名单模板.csv'; a.click();
+  a.href = url;
+  a.download = '学生名单模板.csv';
+  a.click();
   URL.revokeObjectURL(url);
   toast('⬇️ 模板已下载');
 });
 
+/* ---------- 粘贴名单 ---------- */
 $('btnPasteList').addEventListener('click', () => {
   showModal('粘贴学生名单',
     `<p class="hint" style="margin:0 0 6px">每行「学号,姓名」或仅姓名，导入后覆盖当前班级名单。</p>
@@ -850,7 +932,6 @@ $('btnPasteList').addEventListener('click', () => {
    排座工作台
    ========================================================= */
 function renderSeating(){
-  // 模板按钮
   const tplBox = $('tplGrid');
   tplBox.innerHTML = Object.entries(TEMPLATES).map(([k,t]) =>
     `<button class="tpl-btn ${Seat.tpl===k?'active':''}" data-tpl="${k}">
@@ -881,7 +962,7 @@ function renderSeatGrid(){
   const activeClass = Store.getActiveClass();
   const students = activeClass ? activeClass.students : [];
 
-  /* 智慧教室特殊渲染 */
+  /* 智慧教室 */
   if(Seat.tpl === 'smart'){
     gridEl.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
     gridEl.style.gap = '3px';
@@ -921,7 +1002,7 @@ function renderSeatGrid(){
     return;
   }
 
-  /* 通用渲染 */
+  /* 通用 */
   const colTpl = [];
   for(let c=0;c<cols;c++){
     let hasSeat = false;
@@ -986,15 +1067,18 @@ function renderSeatStats(){
   $('seatStats').innerHTML = `座位总数 <b>${total}</b> · 已安排 <b>${filled}</b> 人 · 班级人数 <b>${stuCount}</b>`;
 }
 
-/* ---------- 排座 ---------- */
+/* ---------- 生成座位 ---------- */
 $('btnArrange').addEventListener('click', () => {
   const activeClass = Store.getActiveClass();
-  if(!activeClass || !activeClass.students.length){ toast('请先在「班级管理」选择或创建班级并导入名单'); return; }
+  if(!activeClass || !activeClass.students.length){
+    toast('请先在「班级管理」选择或创建班级并导入名单'); return;
+  }
   const students = activeClass.students;
 
   const seatCells = [];
   for(let r=0;r<Seat.rows;r++) for(let c=0;c<Seat.cols;c++)
     if(Seat.grid[r][c] === 'seat') seatCells.push([r,c]);
+
   if(!seatCells.length){ toast('当前没有可用座位'); return; }
   if(seatCells.length < students.length){
     if(!confirm(`可用座位 ${seatCells.length} 个，少于学生 ${students.length} 人。\n将有 ${students.length - seatCells.length} 人无法安排，是否继续？`)) return;
@@ -1065,7 +1149,8 @@ $('rowsInput').addEventListener('change', () => {
   if(v === Seat.rows){ $('rowsInput').value = Seat.rows; return; }
   Seat.snapshot();
   const ng = [], na = [];
-  for(let r=0;r<v;r++){ ng[r]=[]; na[r]=[];
+  for(let r=0;r<v;r++){
+    ng[r]=[]; na[r]=[];
     for(let c=0;c<Seat.cols;c++){
       if(r < Seat.rows){ ng[r][c] = Seat.grid[r][c]; na[r][c] = Seat.assign[r][c]; }
       else { ng[r][c] = 'seat'; na[r][c] = null; }
@@ -1080,7 +1165,8 @@ $('colsInput').addEventListener('change', () => {
   if(v === Seat.cols){ $('colsInput').value = Seat.cols; return; }
   Seat.snapshot();
   const ng = [], na = [];
-  for(let r=0;r<Seat.rows;r++){ ng[r]=[]; na[r]=[];
+  for(let r=0;r<Seat.rows;r++){
+    ng[r]=[]; na[r]=[];
     for(let c=0;c<v;c++){
       if(c < Seat.cols){ ng[r][c] = Seat.grid[r][c]; na[r][c] = Seat.assign[r][c]; }
       else { ng[r][c] = 'seat'; na[r][c] = null; }
@@ -1150,10 +1236,13 @@ function renderSchemes(){
       if(!s) return;
       if(act === 'load'){
         Store.setActiveClass(s.classId);
-        Seat.tpl = s.tpl; Seat.rows = s.rows; Seat.cols = s.cols;
+        Seat.tpl = s.tpl;
+        Seat.rows = s.rows;
+        Seat.cols = s.cols;
         Seat.grid = s.grid.map(r => r.slice());
         Seat.assign = s.assign.map(r => r.slice());
         Seat.history = [];
+        Seat.aisleMode = false;
         go('seating');
         toast(`已加载方案「${s.name}」`);
       }
@@ -1206,7 +1295,6 @@ function renderAttGrid(){
   const students = cls ? cls.students : [];
   const att = Store.getAtt(schemeId);
 
-  /* 智慧教室 */
   if(s.tpl === 'smart'){
     gridEl.style.gridTemplateColumns = `repeat(${s.cols}, 50px)`;
     gridEl.style.gap = '3px';
@@ -1249,7 +1337,6 @@ function renderAttGrid(){
     }
     gridEl.replaceChildren(frag);
   } else {
-    /* 通用 */
     const colTpl = [];
     for(let c=0;c<s.cols;c++){
       let hasSeat = false;
@@ -1288,14 +1375,16 @@ function renderAttGrid(){
 
 function cycleAtt(schemeId, sno){
   const cur = Store.getAtt(schemeId)[sno];
-  const next = cur === 'present' ? 'absent' : cur === 'absent' ? 'late' : cur === 'late' ? null : 'present';
+  const next = cur === 'present' ? 'absent'
+              : cur === 'absent' ? 'late'
+              : cur === 'late' ? null
+              : 'present';
   Store.setAtt(schemeId, sno, next);
   renderAttGrid();
 }
 
 function renderAttStats(schemeId){
   const att = Store.getAtt(schemeId);
-  let present = 0, absent = 0, late = 0, none = 0;
   const s = Store.getScheme(schemeId);
   const cls = s ? Store.getClass(s.classId) : null;
   const students = cls ? cls.students : [];
@@ -1303,9 +1392,10 @@ function renderAttStats(schemeId){
   if(s){
     for(let r=0;r<s.rows;r++) for(let c=0;c<s.cols;c++){
       const idx = s.assign[r][c];
-      if(idx != null) assigned.add(students[idx]?.sno);
+      if(idx != null && students[idx]) assigned.add(students[idx].sno);
     }
   }
+  let present = 0, absent = 0, late = 0, none = 0;
   assigned.forEach(sno => {
     const v = att[sno];
     if(v === 'present') present++;
@@ -1405,7 +1495,7 @@ function renderStatsPage(){
 }
 
 /* =========================================================
-   设置 · 数据导入导出
+   设置 · 数据管理
    ========================================================= */
 $('btnSaveAll').addEventListener('click', () => { Store.save(); toast('💾 所有数据已保存到本地'); });
 
@@ -1459,7 +1549,7 @@ function init(){
   Store.load();
   applyTheme(Store.data.settings.theme || 'light');
 
-  /* 首次使用：创建示例班级，方便体验 */
+  /* 首次使用：创建示例班级 */
   if(!Store.data.classes.length){
     const demo = ['张伟','李娜','王小明','赵敏','刘洋','陈静','杨帆','周涛','吴磊','郑爽',
                   '孙怡','马超','朱琳','胡军','郭敬','林峰','何洁','高远','罗鹏','梁静',
